@@ -1,0 +1,28 @@
+PROMOCITY — arquivos SQL na pasta do projeto
+==============================================
+
+Ordem sugerida (só rode o que ainda não existir no seu Supabase):
+
+1) supabase_merchant_highlights.sql
+   Coluna merchant_highlights (jsonb) na tabela de perfil — destaques da loja no app.
+
+2) supabase_likes_rpc.sql
+   Funções RPC increment_likes / decrement_likes (tabela promotions).
+
+3) supabase_comments.sql
+   Tabela comments (FK para promotions e para a tabela de perfil).
+
+4) supabase_notifications.sql
+   notifications, push_tokens, insert_notification_for_user.
+
+5) supabase_delivery.sql
+   deliveries, delivery_locations, delivery_ratings, colunas motoboy em perfil.
+
+IMPORTANTE — nome da tabela de perfil
+--------------------------------------
+Se no Supabase sua tabela NÃO se chama "users", ajuste:
+
+- No SQL do passo 1: troque "public.users" pelo nome real.
+- Nos scripts 3–5: Localizar/Substituir  public.users  →  public.SEU_NOME
+- No index.html (antes de js/supabase.js):
+     window.PROMOCITY_PROFILE_TABLE = 'SEU_NOME';

@@ -1,0 +1,26 @@
+# Dependências Node.js
+node_modules/
+package-lock.json
+yarn.lock
+
+# Logs do editor
+.cursor/
+.vscode/
+*.code-workspace
+
+# Arquivos de sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Variáveis de ambiente (nunca subir ao GitHub)
+.env
+.env.local
+.env.production
+.env.*
+
+# Arquivos temporários
+*.tmp
+*.bak
+*.swp

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" fill="#1d4ed8" rx="28"/>
+  <!-- Saco de compras estilizado -->
+  <g fill="white" transform="translate(32, 24)">
+    <!-- Alça -->
+    <path d="M38 30 Q38 10 64 10 Q90 10 90 30" fill="none" stroke="white" stroke-width="10" stroke-linecap="round"/>
+    <!-- Corpo do saco -->
+    <rect x="14" y="30" width="100" height="80" rx="10"/>
+    <!-- Tag de desconto -->
+    <ellipse cx="64" cy="112" rx="18" ry="18" fill="#f59e0b"/>
+    <text x="64" y="118" text-anchor="middle" font-size="16" font-weight="bold" fill="#1d4ed8" font-family="Arial">%</text>
+  </g>
+</svg>
