@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>PROMOCITY - Ivaí-PR</title>
+    <!-- Ícone do app (favicon) -->
+    <link rel="icon" type="image/png" href="imagem/promologo.png">
+    <link rel="shortcut icon" type="image/png" href="imagem/promologo.png">
+    <link rel="apple-touch-icon" href="imagem/promologo.png">
+    <!-- Manifesto PWA -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#1d4ed8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <!-- OneSignal Push Notifications -->
+    <script>
+        window.ONESIGNAL_APP_ID = '43ab55a7-693b-4502-a309-aa52f8913fa4';
+    </script>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- MODAL NOTIFICAÇÕES -->
+    <div id="notifications-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-notifications">
+            <div class="modal-notifications-header">
+                <div class="notif-header-left">
+                    <span class="notif-header-icon"><i class="fas fa-bell"></i></span>
+                    <h3>Notificações</h3>
+                </div>
+                <div class="notif-header-btns">
+                    <button type="button" class="icon-btn" id="notifications-refresh" title="Atualizar">
+                        <i class="fas fa-rotate-right"></i>
+                    </button>
+                    <button type="button" class="icon-btn" id="notifications-close" aria-label="Fechar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-notifications-subheader">
+                <button type="button" class="notif-mark-all-btn" id="notifications-mark-all-read">
+                    <i class="fas fa-check-double"></i> Marcar todas como lidas
+                </button>
+            </div>
+            <div id="notifications-list" class="notifications-list"></div>
+        </div>
+    </div>
+
+    <!-- MODAL COMENTÁRIOS -->
+    <div id="comments-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-comments">
+            <div class="modal-comments-header">
+                <h3>Comentários</h3>
+                <button type="button" class="icon-btn" id="comments-modal-close" aria-label="Fechar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="comments-list" class="comments-list"></div>
+            <div class="comments-input-wrap">
+                <input type="text" id="comment-input" placeholder="Escreva um comentário..." maxlength="500" autocomplete="off">
+                <button type="button" class="btn btn-primary" id="comment-submit">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA DE LOGIN -->
+    <section id="login-screen" class="screen auth-screen">
+        <div class="auth-container">
+            <div class="logo">
+                <img src="imagem/promoicone.svg" alt="PROMOCITY - Ivaí-PR" class="logo-image">
+                <p>Ivaí-PR</p>
+            </div>
+            
+            <form id="login-form" class="auth-form">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="login-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="login-password" placeholder="Senha" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Entrar
+                </button>
+            </form>
+
+            <button id="install-app-btn" class="btn btn-secondary btn-block hidden" style="margin-top: 0.75rem;">
+                <i class="fas fa-download"></i> Instalar app no dispositivo
+            </button>
+
+            <div class="auth-links">
+                <a href="#" id="show-register">Criar conta</a>
+                <a href="#" id="show-recover">Esqueci a senha</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- TELA DE CADASTRO -->
+    <section id="register-screen" class="screen auth-screen hidden">
+        <div class="auth-container">
+            <div class="logo">
+                <img src="imagem/promoicone.svg" alt="PROMOCITY - Ivaí-PR" class="logo-image">
+                <h1>Criar Conta</h1>
+            </div>
+
+            <form id="register-form" class="auth-form">
+                <!-- Removido o seletor de tipo de usuário -->
+
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="register-name" placeholder="Nome completo" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="register-email" placeholder="Email" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="register-password" placeholder="Senha (mín. 6 caracteres)" required minlength="6">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-phone"></i>
+                    <input type="tel" id="register-phone" placeholder="WhatsApp" required>
+                </div>
+
+                <!-- Removidos os campos extras para comerciante -->
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Cadastrar
+                </button>
+            </form>
+
+            <div class="auth-links">
+                <a href="#" id="show-login">Já tenho conta</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- TELA PRINCIPAL (FEED) -->
+    <section id="main-screen" class="screen main-screen hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content header-main">
+                <button type="button" class="icon-btn header-avatar-btn" id="btn-header-profile" aria-label="Perfil">
+                    <img id="header-avatar-img" src="" alt="" class="header-avatar-img hidden">
+                    <i id="header-avatar-fallback" class="fas fa-user"></i>
+                </button>
+                <div class="search-box header-main-search" id="header-search-trigger" role="button" tabindex="0">
+                    <i class="fas fa-search"></i>
+                    <span class="header-search-placeholder">Buscar no PromocitApp</span>
+                </div>
+                <div class="header-actions">
+                    <button id="btn-notifications" class="icon-btn">
+                        <i class="fas fa-bell"></i>
+                        <span id="notifications-badge" class="notifications-badge hidden">0</span>
+                    </button>
+                    <button id="btn-chat" class="icon-btn">🤖</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stories -->
+        <div class="stories-container">
+            <div class="stories-scroll" id="stories-list">
+                <!-- Stories injetados via JS -->
+            </div>
+        </div>
+
+        <!-- Feed -->
+        <div class="feed-container" id="feed-list">
+            <!-- Promoções injetadas via JS -->
+        </div>
+
+        <!-- Espaço para bottom nav -->
+        <div class="bottom-spacer"></div>
+    </section>
+
+    <!-- TELA DE PERFIL -->
+    <section id="profile-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="main-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Perfil</span>
+                <button id="btn-edit-profile" class="icon-btn" aria-label="Mais opções do perfil">
+                    <i class="fas fa-ellipsis-vertical"></i>
+                </button>
+            </div>
+        </header>
+        <div id="profile-actions-menu" class="profile-actions-menu hidden" aria-hidden="true">
+            <div class="profile-actions-menu-content" id="profile-actions-menu-content"></div>
+        </div>
+
+        <div class="profile-container" id="profile-content">
+            <!-- Conteúdo do perfil injetado via JS -->
+        </div>
+
+        <!-- Input oculto para upload da foto de capa -->
+        <input type="file" id="profile-cover-input" accept="image/*" hidden>
+
+        <div class="bottom-spacer"></div>
+    </section>
+
+    <!-- TELA DE FAVORITOS -->
+    <section id="favorites-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="main-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Meus Favoritos</span>
+            </div>
+        </header>
+
+        <div class="feed-container" id="favorites-list">
+            <!-- Favoritos injetados via JS -->
+        </div>
+
+        <div class="bottom-spacer"></div>
+    </section>
+
+    <!-- TELA DE PUBLICAR PROMOÇÃO (COMERCIANTE) -->
+    <section id="publish-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="main-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Nova Promoção</span>
+            </div>
+        </header>
+
+        <div class="publish-container">
+            <form id="publish-form">
+                <div class="image-upload" id="image-upload-area">
+                    <input type="file" id="promo-image" accept="image/*" hidden>
+                    <input type="file" id="promo-image-camera" accept="image/*" capture="environment" hidden
+                           onchange="(function(src){if(!src.files[0])return;var dt=new DataTransfer();dt.items.add(src.files[0]);var dest=document.getElementById('promo-image');dest.files=dt.files;dest.dispatchEvent(new Event('change'))})(this)">
+                    <div class="upload-placeholder upload-source-selector">
+                        <button type="button" class="upload-source-btn" onclick="event.stopPropagation();document.getElementById('promo-image-camera').click()">
+                            <i class="fas fa-camera"></i>
+                            <span>Tirar foto</span>
+                        </button>
+                        <div class="upload-source-divider"></div>
+                        <button type="button" class="upload-source-btn" onclick="event.stopPropagation();document.getElementById('promo-image').click()">
+                            <i class="fas fa-images"></i>
+                            <span>Escolher da galeria</span>
+                        </button>
+                    </div>
+                    <img id="image-preview" class="hidden">
+                </div>
+
+                <div class="form-group">
+                    <label>Título da promoção</label>
+                    <input type="text" id="promo-title" placeholder="Ex: 50% OFF em todos os produtos" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="promo-description" rows="3" placeholder="Detalhes da promoção..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="promo-category" required>
+                        <option value="">Selecione a categoria</option>
+                        <option value="food">Alimentação</option>
+                        <option value="clothing">Vestuário</option>
+                        <option value="services">Serviços</option>
+                        <option value="health">Saúde</option>
+                        <option value="tech">Tecnologia</option>
+                        <option value="other">Outros</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Preço Original (opcional)</label>
+                        <input type="number" id="promo-old-price" placeholder="R$ 0,00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Preço Promocional</label>
+                        <input type="number" id="promo-new-price" placeholder="R$ 0,00" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="promo-hot">
+                        <span class="checkmark"></span>
+                        Destacar como HOT 🔥
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Validade</label>
+                    <input type="datetime-local" id="promo-expires" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-paper-plane"></i> Publicar Promoção
+                </button>
+            </form>
+        </div>
+
+        <div class="bottom-spacer"></div>
+    </section>
+
+    <!-- TELA DE PUBLICAR STORIES -->
+    <section id="story-publish-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="main-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Publicar na Vitrine</span>
+                <button id="btn-publish-story" class="icon-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="publish-container">
+            <form id="story-publish-form">
+                <!-- Upload de imagem -->
+                <div class="image-upload" id="story-image-upload-area">
+                    <input type="file" id="story-image" accept="image/*" hidden>
+                    <div class="upload-placeholder">
+                        <i class="fas fa-camera"></i>
+                        <span>Adicionar foto da vitrine</span>
+                    </div>
+                    <img id="story-image-preview" class="hidden">
+                </div>
+
+                <!-- Número de WhatsApp (opcional) -->
+                <div class="form-group">
+                    <label>WhatsApp (opcional)</label>
+                    <input type="tel" id="story-whatsapp" placeholder="Número para contato (ex: 42999067042)">
+                    <small class="field-note">Se não preenchido, usará o número do seu perfil</small>
+                </div>
+
+                <!-- Legenda (opcional) -->
+                <div class="form-group">
+                    <label>Legenda (opcional)</label>
+                    <textarea id="story-caption" rows="2" placeholder="Digite uma mensagem para esta vitrine..."></textarea>
+                </div>
+
+                <!-- Validade (padrão 24h) -->
+                <div class="form-group">
+                    <label>Validade</label>
+                    <input type="datetime-local" id="story-expires" required>
+                </div>
+
+                <!-- Botão de publicar -->
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-paper-plane"></i> Publicar na Vitrine
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- TELA DE STORIES (VISUALIZAÇÃO) -->
+    <section id="story-viewer" class="screen story-viewer hidden">
+        <div class="story-progress">
+            <div class="progress-bar" id="story-progress"></div>
+        </div>
+        <button class="story-close" id="close-story" aria-label="Fechar story" title="Fechar">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="story-content" id="story-content">
+            <!-- Story injetado via JS -->
+        </div>
+    </section>
+
+    <!-- TELA DE BUSCA -->
+    <section id="search-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content search-header">
+                <div class="merchant-search-field-wrap">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-input" placeholder="Buscar comércios ou promoções..." autocomplete="off" aria-autocomplete="list" aria-controls="merchant-search-dropdown" aria-expanded="false">
+                    </div>
+                    <div id="merchant-search-dropdown" class="merchant-search-dropdown" role="listbox" aria-label="Comércios encontrados"></div>
+                </div>
+                <button class="back-btn" data-target="main-screen">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="categories-scroll" id="categories-list">
+            <div class="category-card" data-category="food">
+                <div class="cat-icon-wrap">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <span>Alimentação</span>
+            </div>
+            <div class="category-card" data-category="clothing">
+                <div class="cat-icon-wrap">
+                    <i class="fas fa-shirt"></i>
+                </div>
+                <span>Vestuário</span>
+            </div>
+            <div class="category-card" data-category="services">
+                <div class="cat-icon-wrap">
+                    <i class="fas fa-screwdriver-wrench"></i>
+                </div>
+                <span>Serviços</span>
+            </div>
+            <div class="category-card" data-category="health">
+                <div class="cat-icon-wrap">
+                    <i class="fas fa-heart-pulse"></i>
+                </div>
+                <span>Saúde</span>
+            </div>
+            <div class="category-card" data-category="tech">
+                <div class="cat-icon-wrap">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <span>Tecnologia</span>
+            </div>
+            <div class="category-card" data-category="other">
+                <div class="cat-icon-wrap">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <span>Outros</span>
+            </div>
+        </div>
+
+        <div class="feed-container" id="search-results">
+            <!-- Resultados injetados via JS -->
+        </div>
+
+        <div class="bottom-spacer"></div>
+    </section>
+
+    <!-- TELA DO MAPA (NOVA) -->
+    <section id="map-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="main-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Promoções perto de você</span>
+                <button id="btn-refresh-map" class="icon-btn">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </header>
+
+       <div class="map-container">
+    <div id="promo-map" style="height: 100%; width: 100%;"></div>
+    <div class="map-promo-list" id="map-promo-list">
+        <!-- Lista de promoções será injetada via JS -->
+    </div>
+</div>
+
+        <div class="bottom-spacer"></div>
+    </section>
+
+    <!-- TELA MEUS PEDIDOS (CLIENTE) -->
+    <section id="my-deliveries-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="profile-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Meus pedidos com entrega</span>
+            </div>
+        </header>
+        <div class="feed-container" id="my-deliveries-list"></div>
+    </section>
+
+    <!-- TELA PEDIDO COM ENTREGA (CLIENTE) -->
+    <section id="delivery-request-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" id="delivery-request-back">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Pedir com entrega</span>
+            </div>
+        </header>
+        <div class="delivery-request-container">
+            <div id="delivery-request-promo-summary"></div>
+
+            <!-- Itens do pedido -->
+            <div class="order-items-section">
+                <div class="order-items-header">
+                    <span class="order-items-title"><i class="fas fa-list"></i> Itens do pedido</span>
+                </div>
+                <div id="order-items-list"></div>
+            </div>
+
+            <!-- Outras promoções do comerciante -->
+            <div id="merchant-other-promos-section" class="hidden">
+                <p class="other-promos-label"><i class="fas fa-plus-circle"></i> Adicionar mais itens do mesmo comerciante</p>
+                <div class="other-promos-scroll" id="merchant-other-promos-list"></div>
+            </div>
+
+            <form id="delivery-request-form">
+                <!-- Seção de localização -->
+                <div class="form-group">
+                    <label>Local de entrega</label>
+                    <div class="location-mode-btns">
+                        <button type="button" id="btn-use-gps-location" class="location-mode-btn">
+                            <i class="fas fa-location-crosshairs"></i>
+                            <span>Localização atual</span>
+                            <small>Pino exato no mapa</small>
+                        </button>
+                        <button type="button" id="btn-use-manual-address" class="location-mode-btn">
+                            <i class="fas fa-keyboard"></i>
+                            <span>Digitar endereço</span>
+                            <small>Rua e número</small>
+                        </button>
+                    </div>
+                    <!-- Preview GPS -->
+                    <div id="gps-location-preview" class="gps-location-preview hidden">
+                        <div class="gps-preview-info">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <span id="gps-preview-address">Obtendo endereço...</span>
+                                <a id="gps-preview-link" href="#" target="_blank" rel="noopener noreferrer" class="gps-maps-link">
+                                    <i class="fas fa-external-link-alt"></i> Ver no Google Maps
+                                </a>
+                            </div>
+                        </div>
+                        <button type="button" class="gps-change-btn" id="btn-change-location">
+                            <i class="fas fa-redo"></i> Mudar
+                        </button>
+                    </div>
+                    <!-- Input manual -->
+                    <div id="manual-address-input" class="hidden">
+                        <input type="text" id="delivery-address" placeholder="Rua, número, bairro, cidade">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Nome (para contato)</label>
+                    <input type="text" id="delivery-client-name" placeholder="Seu nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Telefone (WhatsApp)</label>
+                    <input type="tel" id="delivery-client-phone" placeholder="(42) 99999-9999" required>
+                </div>
+                <div class="form-group">
+                    <label>Observações (opcional)</label>
+                    <textarea id="delivery-notes" rows="2" placeholder="Ponto de referência, etc."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Forma de pagamento</label>
+                    <div class="payment-method-options">
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="dinheiro" id="pay-dinheiro" required>
+                            <span class="payment-option-card">
+                                <i class="fas fa-money-bill-wave"></i>
+                                <span>Dinheiro</span>
+                            </span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="cartao" id="pay-cartao">
+                            <span class="payment-option-card">
+                                <i class="fas fa-credit-card"></i>
+                                <span>Cartão</span>
+                            </span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="pix" id="pay-pix">
+                            <span class="payment-option-card">
+                                <i class="fas fa-qrcode"></i>
+                                <span>Pix</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group hidden" id="troco-group">
+                    <label>Troco para quanto?</label>
+                    <input type="number" id="delivery-change-for" placeholder="Ex: 50,00" step="0.01" min="0">
+                </div>
+                <div class="delivery-fee-summary" id="delivery-fee-summary"></div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="fas fa-check"></i> Confirmar pedido
+                </button>
+            </form>
+        </div>
+    </section>
+
+    <!-- TELA DASHBOARD MOTOBOY -->
+    <section id="motoboy-dashboard-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="profile-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Entregas</span>
+            </div>
+        </header>
+        <div class="motoboy-tabs">
+            <button type="button" class="motoboy-tab active" data-tab="available">Disponíveis</button>
+            <button type="button" class="motoboy-tab" data-tab="in_progress">Em andamento</button>
+            <button type="button" class="motoboy-tab" data-tab="history">Histórico</button>
+        </div>
+        <div class="motoboy-tab-content" id="motoboy-available-list"></div>
+        <div class="motoboy-tab-content hidden" id="motoboy-in-progress-list"></div>
+        <div class="motoboy-tab-content hidden" id="motoboy-history-list"></div>
+    </section>
+
+    <!-- TELA PEDIDOS DO COMERCIANTE -->
+    <section id="merchant-orders-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="profile-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Pedidos de entrega</span>
+            </div>
+        </header>
+        <div class="feed-container" id="merchant-orders-list"></div>
+    </section>
+
+    <!-- TELA RASTREIO ENTREGA (CLIENTE / COMERCIANTE) -->
+    <section id="delivery-tracking-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" id="delivery-tracking-back">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Acompanhar entrega</span>
+            </div>
+        </header>
+        <div class="delivery-tracking-status" id="delivery-tracking-status"></div>
+        <div id="delivery-tracking-map" class="delivery-tracking-map"></div>
+        <div class="delivery-tracking-details" id="delivery-tracking-details"></div>
+    </section>
+
+    <!-- TELA DETALHE ENTREGA MOTOBOY (status + compartilhar localização) -->
+    <section id="delivery-detail-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" id="delivery-detail-back">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Entrega</span>
+            </div>
+        </header>
+        <div class="delivery-detail-content" id="delivery-detail-content"></div>
+        <div class="delivery-detail-actions" id="delivery-detail-actions"></div>
+    </section>
+
+    <!-- TELA DESTAQUE DA LOJA (perfil do comerciante) -->
+    <section id="highlight-edit-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button type="button" class="back-btn" data-target="profile-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title" id="highlight-edit-header-title">Destaque da loja</span>
+            </div>
+        </header>
+
+        <div class="publish-container">
+            <form id="highlight-edit-form">
+                <div class="image-upload" id="highlight-image-upload-area">
+                    <input type="file" id="highlight-image" accept="image/*" hidden>
+                    <input type="file" id="highlight-image-camera" accept="image/*" capture="environment" hidden
+                           onchange="(function(src){if(!src.files[0])return;var dt=new DataTransfer();dt.items.add(src.files[0]);var dest=document.getElementById('highlight-image');dest.files=dt.files;dest.dispatchEvent(new Event('change'))})(this)">
+                    <div class="upload-placeholder upload-source-selector">
+                        <button type="button" class="upload-source-btn" onclick="event.stopPropagation();document.getElementById('highlight-image-camera').click()">
+                            <i class="fas fa-camera"></i>
+                            <span>Tirar foto</span>
+                        </button>
+                        <div class="upload-source-divider"></div>
+                        <button type="button" class="upload-source-btn" onclick="event.stopPropagation();document.getElementById('highlight-image').click()">
+                            <i class="fas fa-images"></i>
+                            <span>Escolher da galeria</span>
+                        </button>
+                    </div>
+                    <img id="highlight-image-preview" class="hidden" alt="Prévia">
+                </div>
+
+                <input type="hidden" id="highlight-edit-id" value="">
+
+                <div class="form-group">
+                    <label>Nome do produto</label>
+                    <input type="text" id="highlight-title" placeholder="Ex: Combo família" required maxlength="120">
+                </div>
+
+                <div class="form-group">
+                    <label>Descrição (opcional)</label>
+                    <textarea id="highlight-description" rows="2" placeholder="Detalhes para o cliente..." maxlength="500"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Preço (opcional)</label>
+                    <input type="number" id="highlight-price" placeholder="Deixe vazio = sob consulta" step="0.01" min="0">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="highlight-form-submit">
+                    <i class="fas fa-save"></i> Salvar destaque
+                </button>
+            </form>
+        </div>
+
+        <div class="bottom-spacer"></div>
+    </section>
+
+    <!-- TELA DE EDIÇÃO DE PERFIL -->
+    <section id="edit-profile-screen" class="screen main-screen hidden">
+        <header class="app-header">
+            <div class="header-content">
+                <button class="back-btn" data-target="profile-screen">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span class="header-title">Editar Perfil</span>
+                <button id="btn-save-profile" class="icon-btn">
+                    <i class="fas fa-check"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Área de fotos: capa clicável com avatar sobreposto -->
+        <div class="profile-photos-edit" id="edit-cover-area">
+            <img id="edit-cover-preview" src="" alt="Foto de capa" class="cover-edit-img">
+            <div class="cover-edit-hint"><i class="fas fa-camera"></i></div>
+            <input type="file" id="edit-cover-input" accept="image/*" hidden>
+            <!-- Avatar sobreposto — clique para trocar foto de perfil -->
+            <div class="avatar-edit" id="edit-avatar-area">
+                <img id="edit-avatar-preview" src="" alt="Avatar" class="profile-avatar">
+                <div class="avatar-overlay">
+                    <i class="fas fa-camera"></i>
+                    <span>Foto</span>
+                </div>
+                <input type="file" id="edit-avatar-input" accept="image/*" hidden>
+            </div>
+        </div>
+
+        <div class="edit-profile-container">
+            <form id="edit-profile-form">
+
+                <div class="form-group">
+                    <label>Nome</label>
+                    <input type="text" id="edit-name" placeholder="Seu nome" required>
+                </div>
+
+                <div class="form-group">
+                    <label>E-mail</label>
+                    <input type="email" id="edit-email" readonly disabled class="readonly-field">
+                </div>
+
+                <div class="form-group">
+                    <label>WhatsApp</label>
+                    <input type="tel" id="edit-phone" placeholder="(XX) XXXXX-XXXX" required>
+                </div>
+
+                <!-- NOVO: Link da loja virtual na edição -->
+                <div id="edit-merchant-fields" class="hidden">
+                    <div class="form-group">
+                        <label>Nome do comércio</label>
+                        <input type="text" id="edit-business-name" placeholder="Nome do seu negócio">
+                    </div>
+                    <div class="form-group">
+                        <label>Endereço</label>
+                        <input type="text" id="edit-business-address" placeholder="Endereço completo">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <select id="edit-business-category">
+                            <option value="">Selecione</option>
+                            <option value="food">Alimentação</option>
+                            <option value="clothing">Vestuário</option>
+                            <option value="services">Serviços</option>
+                            <option value="health">Saúde</option>
+                            <option value="tech">Tecnologia</option>
+                            <option value="other">Outros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Link da loja virtual</label>
+                        <input type="url" id="edit-business-store-link" placeholder="https://meusite.com">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- BOTTOM NAVIGATION - SEM O BOTÃO DO MAPA -->
+    <nav class="bottom-nav hidden" id="bottom-nav">
+        <button class="nav-item active" data-screen="main-screen">
+            <i class="fas fa-home"></i>
+            <span>Início</span>
+        </button>
+        <button class="nav-item" data-screen="search-screen">
+            <i class="fas fa-search"></i>
+            <span>Buscar</span>
+        </button>
+        <!-- Botão central -->
+        <button class="nav-item nav-item-center" id="btn-add-menu">
+            <div class="add-btn">
+                <i class="fas fa-plus"></i>
+            </div>
+        </button>
+        <button class="nav-item" data-screen="favorites-screen">
+            <i class="fas fa-heart"></i>
+            <span>Favoritos</span>
+        </button>
+        <button class="nav-item" data-screen="map-screen">
+            <i class="fas fa-map-marked-alt"></i>
+            <span>Mapa</span>
+        </button>
+    </nav>
+
+    <!-- MENU FLUTUANTE PARA ADICIONAR -->
+    <div id="add-menu" class="add-menu hidden">
+        <div class="add-menu-content">
+            <button type="button" class="add-menu-item" id="add-story-btn">
+                <div class="add-menu-icon"><i class="fas fa-clock"></i></div>
+                <div class="add-menu-text">
+                    <strong>Nova Vitrine</strong>
+                    <small>Foto que some em 24h</small>
+                </div>
+            </button>
+            <button type="button" class="add-menu-item" id="add-promo-btn">
+                <div class="add-menu-icon"><i class="fas fa-tag"></i></div>
+                <div class="add-menu-text">
+                    <strong>Nova Promoção</strong>
+                    <small>Publicar no feed</small>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL ESCOLHA VEÍCULO MOTOBOY -->
+    <div id="motoboy-vehicle-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-motoboy-vehicle">
+            <h3>Escolha seu veículo</h3>
+            <div class="motoboy-vehicle-options">
+                <button type="button" class="btn-vehicle" data-vehicle="moto"><i class="fas fa-motorcycle"></i> Moto</button>
+                <button type="button" class="btn-vehicle" data-vehicle="bike"><i class="fas fa-bicycle"></i> Bike</button>
+                <button type="button" class="btn-vehicle" data-vehicle="carro"><i class="fas fa-car"></i> Carro</button>
+            </div>
+            <button type="button" class="btn btn-secondary btn-block modal-close-btn" id="motoboy-vehicle-cancel">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MENU DE COMPARTILHAMENTO -->
+    <div id="share-menu" class="share-menu hidden">
+        <div class="share-menu-content">
+            <button class="share-menu-item" data-network="whatsapp">
+                <i class="fab fa-whatsapp"></i>
+                <span>WhatsApp</span>
+            </button>
+            <button class="share-menu-item" data-network="facebook">
+                <i class="fab fa-facebook"></i>
+                <span>Facebook</span>
+            </button>
+            <button class="share-menu-item" data-network="twitter">
+                <i class="fab fa-x-twitter"></i>
+                <span>Twitter</span>
+            </button>
+            <button class="share-menu-item" data-network="telegram">
+                <i class="fab fa-telegram"></i>
+                <span>Telegram</span>
+            </button>
+            <button class="share-menu-item" data-network="copy">
+                <i class="fas fa-link"></i>
+                <span>Copiar link</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Botão flutuante do mapa removido: mapa está no rodapé -->
+
+    <!-- SCRIPTS - UMA ÚNICA VEZ CADA -->
+    <script src="js/utils.js?v=20260408"></script>
+    <!-- Tabela de perfil usada nos relacionamentos (author:users, etc.). Antes de js/supabase.js. -->
+    <script>window.PROMOCITY_PROFILE_TABLE = 'users';</script>
+    <!-- Tabela oficial de destaques (evita probe legada e 404 no boot) -->
+    <script>window.PROMOCITY_HIGHLIGHTS_TABLE = 'merchant_highlights';</script>
+    <script src="js/supabase.js?v=20260408"></script>
+    <script src="js/database.js?v=20260410"></script>
+    <script src="js/auth.js?v=20260407a"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/map.js?v=20260408"></script>
+    <script src="js/ui.js?v=20260407a"></script>
+    <script src="js/app.js?v=20260410"></script>
+</body>
+</html>
