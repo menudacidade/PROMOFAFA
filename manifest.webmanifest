@@ -1,7 +1,7 @@
 {
   "name": "PROMOCITY - Ivaí-PR",
   "short_name": "Promocity",
-  "start_url": "/PROMOFAFA/",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#1d4ed8",
   "theme_color": "#1d4ed8",
