@@ -1110,6 +1110,18 @@ const db = {
     },
 
     /**
+     * Envia push notification para todos via Edge Function (OneSignal).
+     * Não bloqueia a UI — erro é silencioso.
+     */
+    async sendPushToAll(title, message, url) {
+        try {
+            await supabaseClient.functions.invoke('notify-push', {
+                body: { title, message, url: url || '' }
+            });
+        } catch (_) {}
+    },
+
+    /**
      * Retorna IDs de todos os usuários exceto o informado (para notificações em massa).
      * Requer política RLS em users que permita SELECT de id para outros usuários.
      */
@@ -1138,6 +1150,8 @@ const db = {
         const title = 'Novo story';
         const message = `${authorName || 'Um comerciante'} publicou um story. Confira no início do feed!`;
         const payload = { title, message, actionUrl: 'promocity://story/' + authorId, actionLabel: 'Ver story' };
+        // Push na barra do celular via Edge Function
+        this.sendPushToAll(title, message, 'https://wonderful-dodol-b53606.netlify.app').catch(() => {});
         const CHUNK = 10;
         for (let i = 0; i < userIds.length; i += CHUNK) {
             const chunk = userIds.slice(i, i + CHUNK);
@@ -1201,7 +1215,7 @@ const db = {
     async notifyUsersAboutNewPromotion(authorId, authorName, promotionTitle, promotionId) {
         const userIds = await this.getOtherUserIds(authorId);
         if (!userIds.length) return;
-        const title = 'Nova promoção';
+        const title = 'Nova promoção 🔥';
         const message = `${authorName || 'Uma loja'} publicou: ${promotionTitle || 'Nova oferta'}`;
         const payload = {
             title,
@@ -1209,6 +1223,11 @@ const db = {
             actionUrl: promotionId ? 'promocity://promo/' + promotionId : '',
             actionLabel: promotionId ? 'Ver promoção' : ''
         };
+        // Push na barra do celular via Edge Function
+        const promoUrl = promotionId
+            ? `https://wonderful-dodol-b53606.netlify.app?promo=${promotionId}`
+            : 'https://wonderful-dodol-b53606.netlify.app';
+        this.sendPushToAll(title, message, promoUrl).catch(() => {});
         const CHUNK = 10;
         for (let i = 0; i < userIds.length; i += CHUNK) {
             const chunk = userIds.slice(i, i + CHUNK);
