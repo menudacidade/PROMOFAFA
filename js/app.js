@@ -216,6 +216,8 @@ const app = {
             await window.OneSignal.init({
                 appId: ONESIGNAL_APP_ID,
                 allowLocalhostAsSecureOrigin: true,
+                serviceWorkerPath: '/OneSignalSDKWorker.js',
+                serviceWorkerParam: { scope: '/' },
                 promptOptions: {
                     slidedown: {
                         prompts: [{
