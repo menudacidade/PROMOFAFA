@@ -209,19 +209,37 @@ const app = {
 
     // ==================== PUSH (OneSignal) ====================
     async initPushNotifications() {
-        // Defina em `window.ONESIGNAL_APP_ID = '...'` antes de iniciar o app (ou substitua aqui).
         const ONESIGNAL_APP_ID = window.ONESIGNAL_APP_ID || '';
         if (!ONESIGNAL_APP_ID || !window.OneSignal || !auth.isAuthenticated()) return;
 
         try {
             await window.OneSignal.init({
                 appId: ONESIGNAL_APP_ID,
-                allowLocalhostAsSecureOrigin: true
+                allowLocalhostAsSecureOrigin: true,
+                promptOptions: {
+                    slidedown: {
+                        prompts: [{
+                            type: 'push',
+                            autoPrompt: true,
+                            text: {
+                                actionMessage: 'Receba alertas de promoções e pedidos no seu celular!',
+                                acceptButton: 'Ativar',
+                                cancelButton: 'Agora não'
+                            },
+                            delay: { pageViews: 1, timeDelay: 3 }
+                        }]
+                    }
+                }
             });
 
             const perm = await window.OneSignal.Notifications.permission;
             if (perm !== true) {
-                await window.OneSignal.Notifications.requestPermission();
+                // Tenta pedir permissão via slidedown (menos bloqueado por browsers)
+                try {
+                    await window.OneSignal.Slidedown.promptPush();
+                } catch (_) {
+                    await window.OneSignal.Notifications.requestPermission();
+                }
             }
 
             const token = await window.OneSignal.User.PushSubscription.id;
@@ -233,6 +251,26 @@ const app = {
             }
         } catch (e) {
             console.warn('Push init falhou:', e?.message || e);
+        }
+    },
+
+    // Permite ativar notificações manualmente (chamado pelo botão no perfil)
+    async enablePushNotifications() {
+        const ONESIGNAL_APP_ID = window.ONESIGNAL_APP_ID || '';
+        if (!ONESIGNAL_APP_ID || !window.OneSignal) {
+            ui.showToast('Notificações push não disponíveis neste navegador', 'warning');
+            return;
+        }
+        try {
+            await window.OneSignal.Notifications.requestPermission();
+            const granted = await window.OneSignal.Notifications.permission;
+            if (granted) {
+                ui.showToast('Notificações ativadas! ✅', 'success');
+            } else {
+                ui.showToast('Permissão negada. Ative nas configurações do navegador.', 'warning', 5000);
+            }
+        } catch (e) {
+            ui.showToast('Não foi possível ativar notificações', 'error');
         }
     },
 
