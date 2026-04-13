@@ -2575,16 +2575,13 @@ const ui = {
                     aria-label="Ver loja ${storeName}"
                     title="${storeName}"
                 >
-                    <div class="partner-store-logo-wrap">
-                        <img
-                            src="${logoUrl}"
-                            alt="${storeName}"
-                            class="partner-store-logo"
-                            loading="lazy"
-                            onerror="this.closest('.partner-store-card').style.display='none'"
-                        >
-                    </div>
-                    <span class="partner-store-name">${storeName}</span>
+                    <img
+                        src="${logoUrl}"
+                        alt="${storeName}"
+                        class="partner-store-logo"
+                        loading="lazy"
+                        onerror="this.closest('.partner-store-card').style.display='none'"
+                    >
                 </button>
             `;
         }).join('');

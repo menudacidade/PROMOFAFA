@@ -621,7 +621,7 @@ body {
    ========================================== */
 
 :root {
-    --ps-card-size: 80px;
+    --ps-card-size: 76px;
     --ps-radius: 18px;
     --ps-gap: 12px;
     --ps-padding-x: 16px;
@@ -655,16 +655,15 @@ body {
     font-size: 0.78rem;
 }
 
-/* ── Linha única com scroll horizontal ── */
+/* ── Linha única, scroll horizontal suave ── */
 .partner-stores-grid {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--ps-gap);
-    padding: 2px var(--ps-padding-x) 4px;
+    padding: 2px var(--ps-padding-x) 2px;
     overflow-x: auto;
-    overflow-y: visible;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
 }
@@ -673,21 +672,24 @@ body {
     display: none;
 }
 
-/* ── Card ── */
+/* ── Card = quadrado clicável, sem wrapper extra ── */
 .partner-store-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    flex: 0 0 var(--ps-card-size);  /* nunca cresce nem encolhe */
+    flex: 0 0 var(--ps-card-size);
     width: var(--ps-card-size);
+    height: var(--ps-card-size);
+    border-radius: var(--ps-radius);
+    overflow: hidden;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.08),
+        0 4px 14px rgba(0, 0, 0, 0.07);
     transition: transform 0.15s ease, opacity 0.15s ease;
     -webkit-tap-highlight-color: transparent;
     outline: none;
+    display: block;
 }
 
 .partner-store-card:active {
@@ -697,51 +699,17 @@ body {
 
 @media (hover: hover) {
     .partner-store-card:hover {
-        transform: scale(1.05);
+        transform: scale(1.06);
     }
 }
 
-/* ── Quadrado da logo: imagem cobre 100% ── */
-.partner-store-logo-wrap {
-    width: var(--ps-card-size);
-    height: var(--ps-card-size);
-    min-width: var(--ps-card-size);
-    min-height: var(--ps-card-size);
-    max-width: var(--ps-card-size);
-    max-height: var(--ps-card-size);
-    border-radius: var(--ps-radius);
-    overflow: hidden;
-    flex-shrink: 0;
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.08),
-        0 4px 14px rgba(0, 0, 0, 0.07);
-}
-
-/* ── Logo: preenche completamente, sem espaços brancos ── */
+/* ── Logo preenche 100% do card, sem espaços ── */
 .partner-store-logo {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
     border-radius: var(--ps-radius);
-}
-
-/* ── Nome da loja ── */
-.partner-store-name {
-    font-size: 0.67rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    line-height: 1.25;
-    width: var(--ps-card-size);
-    max-width: var(--ps-card-size);
-    height: calc(0.67rem * 1.25 * 2);
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    white-space: normal;
-    text-align: center;
-    word-break: break-word;
 }
 
 /* Feed */
