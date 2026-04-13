@@ -693,7 +693,7 @@ const app = {
 
         this.setupMerchantSearchAutocomplete();
 
-        // Categorias
+        // Categorias (tela de busca)
         document.querySelectorAll('.category-card').forEach(card => {
             card.addEventListener('click', async () => {
                 const category = card.dataset.category;
@@ -703,6 +703,53 @@ const app = {
                 try { if (ids.length) counts = await db.getCommentCounts(ids); } catch (_) {}
                 results.forEach(p => { p.comments_count = counts[p.id] ?? 0; });
                 ui.renderFeed(results, ui.elements.searchResults);
+            });
+        });
+
+        // Chips de categoria da home
+        document.querySelectorAll('.home-cat-chip[data-home-category]').forEach(chip => {
+            chip.addEventListener('click', async () => {
+                // Atualiza estado ativo visual
+                document.querySelectorAll('.home-cat-chip').forEach(c => c.classList.remove('home-cat-chip--active'));
+                chip.classList.add('home-cat-chip--active');
+
+                const category = chip.dataset.homeCategory;
+
+                if (category === 'all') {
+                    // Restaura feed completo do estado em memória
+                    const promotions = this.state.promotions || [];
+                    ui.renderFeed(promotions);
+                    return;
+                }
+
+                ui.showLoading(true);
+                try {
+                    const results = await db.getPromotions({ category, limit: 20 });
+                    const ids = (results || []).map(p => p.id);
+                    let counts = {};
+                    let likedIds = [];
+                    try {
+                        if (ids.length) {
+                            [counts, likedIds] = await Promise.all([
+                                db.getCommentCounts(ids).catch(() => ({})),
+                                db.getUserLikedPromoIds(ids).catch(() => [])
+                            ]);
+                        }
+                    } catch (_) {}
+                    const likedSet = new Set(likedIds.map(id => String(id)));
+                    const userFavorites = new Set((auth.currentUser?.profile?.favorites || []).map(f => String(f)));
+                    results.forEach(p => {
+                        p.comments_count = counts[p.id] ?? 0;
+                        p.isLiked = likedSet.has(String(p.id));
+                        p.isFavorited = userFavorites.has(String(p.id));
+                    });
+                    ui.renderFeed(results);
+                } catch (err) {
+                    console.error('[HomeCats] Erro ao filtrar categoria:', err);
+                    ui.showToast('Erro ao filtrar categoria', 'error');
+                } finally {
+                    ui.showLoading(false);
+                }
             });
         });
 
