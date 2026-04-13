@@ -208,15 +208,46 @@ const app = {
     },
 
     // ==================== PUSH (OneSignal) ====================
+
+    // Lock global: impede que OneSignal.init() seja chamado mais de uma vez por sessão.
+    // initPushNotifications() é chamada tanto em app.init() quanto no setupAuthListener(),
+    // então sem este lock ocorreria double-init e comportamento imprevisível.
+    _oneSignalInitialized: false,
+
     async initPushNotifications() {
+        if (this._oneSignalInitialized) return;
+
         const ONESIGNAL_APP_ID = window.ONESIGNAL_APP_ID || '';
         if (!ONESIGNAL_APP_ID || !window.OneSignal || !auth.isAuthenticated()) return;
 
+        this._oneSignalInitialized = true;
+
         try {
+            if ('serviceWorker' in navigator) {
+                // Passo 1: aguarda o SW estar no estado "active"
+                await navigator.serviceWorker.ready;
+
+                // Passo 2: aguarda o SW estar CONTROLANDO esta página.
+                // navigator.serviceWorker.ready resolve quando o SW fica active,
+                // mas o controller (IPC entre processo SW e processo da página)
+                // pode levar alguns ms a mais para ser atualizado.
+                // Sem este check, OneSignal.getRegistration() encontra o SW mas
+                // registration.active.postMessage falha porque controller ainda é null.
+                if (!navigator.serviceWorker.controller) {
+                    await new Promise((resolve) => {
+                        const timeout = setTimeout(resolve, 4000);
+                        navigator.serviceWorker.addEventListener('controllerchange', () => {
+                            clearTimeout(timeout);
+                            resolve();
+                        }, { once: true });
+                    });
+                }
+            }
+
             await window.OneSignal.init({
                 appId: ONESIGNAL_APP_ID,
                 allowLocalhostAsSecureOrigin: true,
-                serviceWorkerPath: '/OneSignalSDKWorker.js',
+                serviceWorkerPath: '/sw.js',
                 serviceWorkerParam: { scope: '/' },
                 promptOptions: {
                     slidedown: {
@@ -236,7 +267,6 @@ const app = {
 
             const perm = await window.OneSignal.Notifications.permission;
             if (perm !== true) {
-                // Tenta pedir permissão via slidedown (menos bloqueado por browsers)
                 try {
                     await window.OneSignal.Slidedown.promptPush();
                 } catch (_) {
@@ -252,6 +282,7 @@ const app = {
                 });
             }
         } catch (e) {
+            this._oneSignalInitialized = false;
             console.warn('Push init falhou:', e?.message || e);
         }
     },
@@ -3133,7 +3164,7 @@ window.app = app;
 document.addEventListener('DOMContentLoaded', () => {
     // Registro do Service Worker (PWA)
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch((err) => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
             console.warn('Falha ao registrar service worker:', err);
         });
     }
