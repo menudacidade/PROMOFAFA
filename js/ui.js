@@ -2530,6 +2530,88 @@ const ui = {
             `*Total: ${utils.formatCurrency(total)}*`
         ].join('\n');
         window.open(`https://wa.me/${this._cart.merchantPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    },
+
+    // ==================== LOJAS PARCEIRAS ====================
+
+    /**
+     * Renderiza a seção "Lojas parceiras" na home.
+     * Exibe apenas comerciantes (user_type=merchant) com foto de perfil válida.
+     * Layout: scroll horizontal com duas linhas em grid.
+     *
+     * @param {Array} merchants - Array de perfis do tipo merchant
+     */
+    renderPartnerStores(merchants) {
+        const container = document.getElementById('partner-stores-section');
+        if (!container) return;
+
+        const esc = utils.escapeHTML || utils.sanitizeInput;
+        const safeUrl = (url, fallback = '') => (
+            utils.sanitizeUrl
+                ? utils.sanitizeUrl(url, { fallback, allowDataImage: false })
+                : (url || fallback)
+        );
+
+        // Filtra merchants com foto válida (segurança extra)
+        const validMerchants = (merchants || []).filter(m => {
+            const url = (m.avatar_url || '').trim();
+            return m.id != null && url.length > 0;
+        });
+
+        if (validMerchants.length === 0) {
+            container.classList.add('hidden');
+            return;
+        }
+
+        const cards = validMerchants.map(m => {
+            const logoUrl = safeUrl(m.avatar_url, '');
+            const storeName = esc(m.business_name || m.name || 'Loja');
+            const userId = esc(String(m.id));
+            return `
+                <button
+                    type="button"
+                    class="partner-store-card"
+                    data-merchant-id="${userId}"
+                    aria-label="Ver loja ${storeName}"
+                    title="${storeName}"
+                >
+                    <div class="partner-store-logo-wrap">
+                        <img
+                            src="${logoUrl}"
+                            alt="${storeName}"
+                            class="partner-store-logo"
+                            loading="lazy"
+                            onerror="this.closest('.partner-store-card').style.display='none'"
+                        >
+                    </div>
+                    <span class="partner-store-name">${storeName}</span>
+                </button>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="partner-stores-header">
+                <h2 class="partner-stores-title">
+                    <i class="fas fa-store" aria-hidden="true"></i>
+                    Lojas parceiras
+                </h2>
+            </div>
+            <div class="partner-stores-grid" id="partner-stores-grid">
+                ${cards}
+            </div>
+        `;
+
+        container.classList.remove('hidden');
+
+        // Listeners de clique para navegar ao perfil do comerciante
+        container.querySelectorAll('.partner-store-card[data-merchant-id]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const merchantId = btn.getAttribute('data-merchant-id');
+                if (merchantId && window.app && typeof window.app.loadProfileByAuthor === 'function') {
+                    window.app.loadProfileByAuthor(merchantId);
+                }
+            });
+        });
     }
 
 };

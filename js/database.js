@@ -1915,6 +1915,38 @@ const db = {
             
         if (error) throw error;
         return true;
+    },
+
+    /**
+     * Busca todos os perfis do tipo "merchant" que possuem foto de perfil válida.
+     * Usado pela seção "Lojas parceiras" na home.
+     */
+    async getAllMerchantProfiles(options = {}) {
+        const limit = Math.min(Math.max(Number(options.limit) || 80, 1), 200);
+        const table = typeof pcUsersTable === 'function' ? pcUsersTable() : 'users';
+        const authCol = typeof pcProfileAuthColumn === 'function' ? pcProfileAuthColumn() : 'id';
+
+        try {
+            const { data, error } = await supabaseClient
+                .from(table)
+                .select(`${authCol}, name, business_name, avatar_url, user_type`)
+                .eq('user_type', 'merchant')
+                .not('avatar_url', 'is', null)
+                .limit(limit);
+
+            if (error) throw error;
+
+            return (data || [])
+                .filter(row => {
+                    const id = row[authCol];
+                    const url = (row.avatar_url || '').trim();
+                    return id != null && url.length > 0;
+                })
+                .map(row => ({ ...row, id: row[authCol] }));
+        } catch (err) {
+            console.warn('[LojasParceiras] Falha ao buscar comerciantes:', err?.message || err);
+            return [];
+        }
     }
 };
 

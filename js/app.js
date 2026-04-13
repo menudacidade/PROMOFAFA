@@ -362,6 +362,13 @@ const app = {
 
         ui.renderStories(stories);
         ui.renderFeed(promotions);
+
+        // Carrega e renderiza a seção "Lojas parceiras" de forma assíncrona e não-bloqueante
+        db.getAllMerchantProfiles().then(merchants => {
+            ui.renderPartnerStores(merchants);
+        }).catch(err => {
+            console.warn('[LojasParceiras] Erro ao renderizar:', err?.message || err);
+        });
     },
 
     /**
