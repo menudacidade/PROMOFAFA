@@ -45,18 +45,26 @@ const app = {
 
             const hasSession = await auth.init();
 
+            addressManager.init();
             this.setupEventListeners();
             this.setupAuthListener();
             this.setupNotificationsPolling();
             this.setupHistoryNavigation();
 
             if (hasSession) {
+                // Sinaliza que init() irá tratar o primeiro SIGNED_IN do listener de auth,
+                // evitando que loadInitialData() seja executado duas vezes.
+                this._initialSessionHandled = true;
                 await this.loadInitialData();
                 ui.navigateTo('main', { historyMode: 'replace' });
                 this.updateHeaderAvatar();
+                addressManager.updateCityDisplay();
+                if (addressManager.hasCity()) {
+                    const cityBar = document.getElementById('city-filter-bar');
+                    if (cityBar) cityBar.classList.remove('hidden');
+                }
                 await this.refreshNotificationsBadge();
                 if (this._notificationsPollStart) this._notificationsPollStart();
-                await this.initPushNotifications();
                 // Abre promoção via deep link (?promo=ID) se houver
                 this.handleDeepLink();
             } else {
@@ -207,168 +215,75 @@ const app = {
         };
     },
 
-    // ==================== PUSH (OneSignal) ====================
-
-    // Lock global: impede que OneSignal.init() seja chamado mais de uma vez por sessão.
-    // initPushNotifications() é chamada tanto em app.init() quanto no setupAuthListener(),
-    // então sem este lock ocorreria double-init e comportamento imprevisível.
-    _oneSignalInitialized: false,
-
-    async initPushNotifications() {
-        if (this._oneSignalInitialized) return;
-
-        const ONESIGNAL_APP_ID = window.ONESIGNAL_APP_ID || '';
-        if (!ONESIGNAL_APP_ID || !window.OneSignal || !auth.isAuthenticated()) return;
-
-        this._oneSignalInitialized = true;
-
-        try {
-            if ('serviceWorker' in navigator) {
-                // Passo 1: aguarda o SW estar no estado "active"
-                await navigator.serviceWorker.ready;
-
-                // Passo 2: aguarda o SW estar CONTROLANDO esta página.
-                // navigator.serviceWorker.ready resolve quando o SW fica active,
-                // mas o controller (IPC entre processo SW e processo da página)
-                // pode levar alguns ms a mais para ser atualizado.
-                // Sem este check, OneSignal.getRegistration() encontra o SW mas
-                // registration.active.postMessage falha porque controller ainda é null.
-                if (!navigator.serviceWorker.controller) {
-                    await new Promise((resolve) => {
-                        const timeout = setTimeout(resolve, 4000);
-                        navigator.serviceWorker.addEventListener('controllerchange', () => {
-                            clearTimeout(timeout);
-                            resolve();
-                        }, { once: true });
-                    });
-                }
-            }
-
-            await window.OneSignal.init({
-                appId: ONESIGNAL_APP_ID,
-                allowLocalhostAsSecureOrigin: true,
-                serviceWorkerPath: '/sw.js',
-                serviceWorkerParam: { scope: '/' },
-                promptOptions: {
-                    slidedown: {
-                        prompts: [{
-                            type: 'push',
-                            autoPrompt: true,
-                            text: {
-                                actionMessage: 'Receba alertas de promoções e pedidos no seu celular!',
-                                acceptButton: 'Ativar',
-                                cancelButton: 'Agora não'
-                            },
-                            delay: { pageViews: 1, timeDelay: 3 }
-                        }]
-                    }
-                }
-            });
-
-            const perm = await window.OneSignal.Notifications.permission;
-            if (perm !== true) {
-                try {
-                    await window.OneSignal.Slidedown.promptPush();
-                } catch (_) {
-                    await window.OneSignal.Notifications.requestPermission();
-                }
-            }
-
-            const token = await window.OneSignal.User.PushSubscription.id;
-            if (token) {
-                await db.upsertPushToken('onesignal', token, {
-                    ua: navigator.userAgent,
-                    platform: navigator.platform
-                });
-            }
-        } catch (e) {
-            this._oneSignalInitialized = false;
-            console.warn('Push init falhou:', e?.message || e);
-        }
-    },
-
-    // Permite ativar notificações manualmente (chamado pelo botão no perfil)
-    async enablePushNotifications() {
-        const ONESIGNAL_APP_ID = window.ONESIGNAL_APP_ID || '';
-        if (!ONESIGNAL_APP_ID || !window.OneSignal) {
-            ui.showToast('Notificações push não disponíveis neste navegador', 'warning');
-            return;
-        }
-        try {
-            await window.OneSignal.Notifications.requestPermission();
-            const granted = await window.OneSignal.Notifications.permission;
-            if (granted) {
-                ui.showToast('Notificações ativadas! ✅', 'success');
-            } else {
-                ui.showToast('Permissão negada. Ative nas configurações do navegador.', 'warning', 5000);
-            }
-        } catch (e) {
-            ui.showToast('Não foi possível ativar notificações', 'error');
-        }
-    },
-
     /**
      * Carrega dados iniciais (feed e stories)
      */
     async loadInitialData() {
-        const [storiesResult, promotionsResult] = await Promise.allSettled([
-            db.getActiveStories(),
-            db.getPromotions({ limit: 20 })
-        ]);
-
-        // Stories são opcionais — falha silenciosa para não bloquear o feed
-        const stories = storiesResult.status === 'fulfilled' ? storiesResult.value : [];
-        if (storiesResult.status === 'rejected') {
-            console.warn('Stories indisponíveis:', storiesResult.reason?.message || storiesResult.reason);
-        }
-
-        // Promoções são essenciais — reporta erro se falhar
-        if (promotionsResult.status === 'rejected') {
-            console.error('Erro ao carregar promoções:', promotionsResult.reason);
-            ui.showToast('Erro ao carregar feed', 'error');
-            ui.renderStories(stories);
-            return;
-        }
-        const promotions = promotionsResult.value;
-
-        this.state.stories = stories;
-        this.state.promotions = promotions;
-
-        const promoIds = (promotions || []).map(p => p.id);
-        let commentCounts = {};
-        let likedIds = [];
+        if (this._loadingInitialData) return;
+        this._loadingInitialData = true;
 
         try {
-            if (promoIds.length) {
-                [commentCounts, likedIds] = await Promise.all([
-                    db.getCommentCounts(promoIds).catch(() => ({})),
-                    db.getUserLikedPromoIds(promoIds).catch(() => [])
-                ]);
+            const [storiesResult, promotionsResult] = await Promise.allSettled([
+                db.getActiveStories(),
+                db.getPromotions({ limit: 20 })
+            ]);
+
+            // Stories são opcionais — falha silenciosa para não bloquear o feed
+            const stories = storiesResult.status === 'fulfilled' ? storiesResult.value : [];
+            if (storiesResult.status === 'rejected') {
+                console.warn('Stories indisponíveis:', storiesResult.reason?.message || storiesResult.reason);
             }
-        } catch (e) {
-            console.warn('Erro ao carregar contagens:', e?.message || e);
+
+            // Promoções são essenciais — reporta erro se falhar
+            if (promotionsResult.status === 'rejected') {
+                console.error('Erro ao carregar promoções:', promotionsResult.reason);
+                ui.showToast('Erro ao carregar feed', 'error');
+                ui.renderStories(stories);
+                return;
+            }
+            const promotions = addressManager.applyFeedFilter(promotionsResult.value);
+
+            this.state.stories = stories;
+            this.state.promotions = promotions;
+
+            const promoIds = (promotions || []).map(p => p.id);
+            let commentCounts = {};
+            let likedIds = [];
+
+            try {
+                if (promoIds.length) {
+                    [commentCounts, likedIds] = await Promise.all([
+                        db.getCommentCounts(promoIds).catch(() => ({})),
+                        db.getUserLikedPromoIds(promoIds).catch(() => [])
+                    ]);
+                }
+            } catch (e) {
+                console.warn('Erro ao carregar contagens:', e?.message || e);
+            }
+
+            const likedSet = new Set(likedIds.map(id => String(id)));
+            const userFavorites = new Set(
+                (auth.currentUser?.profile?.favorites || []).map(f => String(f))
+            );
+
+            promotions.forEach(p => {
+                p.comments_count = commentCounts[p.id] ?? 0;
+                p.isLiked = likedSet.has(String(p.id));
+                p.isFavorited = userFavorites.has(String(p.id));
+            });
+
+            ui.renderStories(stories);
+            ui.renderFeed(promotions);
+
+            // Carrega e renderiza a seção "Lojas parceiras" de forma assíncrona e não-bloqueante
+            db.getAllMerchantProfiles().then(merchants => {
+                ui.renderPartnerStores(merchants);
+            }).catch(err => {
+                console.warn('[LojasParceiras] Erro ao renderizar:', err?.message || err);
+            });
+        } finally {
+            this._loadingInitialData = false;
         }
-
-        const likedSet = new Set(likedIds.map(id => String(id)));
-        const userFavorites = new Set(
-            (auth.currentUser?.profile?.favorites || []).map(f => String(f))
-        );
-
-        promotions.forEach(p => {
-            p.comments_count = commentCounts[p.id] ?? 0;
-            p.isLiked = likedSet.has(String(p.id));
-            p.isFavorited = userFavorites.has(String(p.id));
-        });
-
-        ui.renderStories(stories);
-        ui.renderFeed(promotions);
-
-        // Carrega e renderiza a seção "Lojas parceiras" de forma assíncrona e não-bloqueante
-        db.getAllMerchantProfiles().then(merchants => {
-            ui.renderPartnerStores(merchants);
-        }).catch(err => {
-            console.warn('[LojasParceiras] Erro ao renderizar:', err?.message || err);
-        });
     },
 
     /**
@@ -572,6 +487,14 @@ const app = {
             await this.handleRegister();
         });
         this._syncRegisterCooldownUi();
+
+        // Recarrega feed quando usuário confirma cidade
+        document.addEventListener('promocity:cityChanged', () => {
+            this.loadInitialData();
+            addressManager.updateCityDisplay();
+            const cityBar = document.getElementById('city-filter-bar');
+            if (cityBar) cityBar.classList.remove('hidden');
+        });
 
         // Sino de notificações
         document.getElementById('btn-notifications')?.addEventListener('click', async () => {
@@ -1203,11 +1126,21 @@ const app = {
     setupAuthListener() {
         auth.onAuthStateChange((event, user) => {
             if (event === 'SIGNED_IN') {
-                this.loadInitialData();
+                // O Supabase v2 re-entrega SIGNED_IN assincronamente ao registrar o listener
+                // quando já existe sessão ativa. Nesse caso, init() já agendou loadInitialData()
+                // via _initialSessionHandled — pulamos aqui para evitar execução dupla.
+                if (this._initialSessionHandled) {
+                    this._initialSessionHandled = false;
+                } else {
+                    this.loadInitialData();
+                }
+
                 ui.navigateTo('main', { historyMode: 'replace' });
                 // Não exibe toast aqui: handleLogin já exibe "Login realizado com sucesso!"
                 // para evitar dois toasts sobrepostos ao mesmo tempo.
                 this.updateHeaderAvatar();
+                addressManager.checkAndPromptCity();
+                addressManager.updateCityDisplay();
 
                 const addMenuBtn = document.getElementById('btn-add-menu');
                 if (addMenuBtn) {
@@ -1216,7 +1149,6 @@ const app = {
 
                 this.refreshNotificationsBadge();
                 if (this._notificationsPollStart) this._notificationsPollStart();
-                this.initPushNotifications();
                 // Abre promoção via deep link se o usuário veio de um link compartilhado
                 setTimeout(() => this.handleDeepLink(), 600);
                 
@@ -3216,12 +3148,51 @@ const app = {
 window.app = app;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Registro do Service Worker (PWA)
+    // ── Limpeza de legado OneSignal ──────────────────────────────────────────
+    // Remove SWs antigos (OneSignal) que não sejam o sw.js atual e apaga
+    // os bancos IndexedDB que o OneSignal SDK criava, eliminando os erros
+    // "UnknownError backing store" e conflitos de registro.
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
-            console.warn('Falha ao registrar service worker:', err);
-        });
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+            regs.forEach((reg) => {
+                const url =
+                    reg.active?.scriptURL ||
+                    reg.installing?.scriptURL ||
+                    reg.waiting?.scriptURL ||
+                    '';
+                if (!url.includes('/sw.js')) reg.unregister();
+            });
+        }).catch(() => {});
     }
+    ['ONE_SIGNAL_SDK_DB', 'OneSignalSDKEvents', 'ONE_SIGNAL_SDK_EDGE_CACHE'].forEach((dbName) => {
+        try { indexedDB.deleteDatabase(dbName); } catch (_) {}
+    });
+    // ────────────────────────────────────────────────────────────────────────
+
+    // ── Service Worker (cache/offline) ──────────────────────────────────────
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then((reg) => {
+                // SW em estado waiting: ativa imediatamente
+                if (reg.waiting) {
+                    reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+
+                // Monitora futuras atualizações do SW
+                reg.addEventListener('updatefound', () => {
+                    const worker = reg.installing;
+                    if (!worker) return;
+                    worker.addEventListener('statechange', () => {
+                        // Só ativa o novo SW se o antigo ainda controla (não na 1ª instalação)
+                        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                            worker.postMessage({ type: 'SKIP_WAITING' });
+                        }
+                    });
+                });
+            })
+            .catch((err) => console.warn('[SW] Falha ao registrar Service Worker:', err));
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     // Captura do evento de instalação (PWA)
     window.addEventListener('beforeinstallprompt', (e) => {

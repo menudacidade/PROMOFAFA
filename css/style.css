@@ -7126,3 +7126,129 @@ a.merchant-store-link:hover {
     outline-offset: 3px;
     border-radius: inherit;
 }
+
+/* ==========================================================================
+   MODAL DE CONFIGURAÇÃO DE CIDADE (address.js)
+   ========================================================================== */
+
+.modal-city-setup {
+    max-width: 380px;
+    width: 92%;
+    padding: 0;
+    border-radius: 1.25rem;
+    overflow: hidden;
+}
+
+.modal-city-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.25rem 0;
+}
+
+.modal-city-icon-wrap {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    background: #eff6ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-city-icon {
+    font-size: 1.25rem;
+    color: #1d4ed8;
+}
+
+.modal-city-body {
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+.modal-city-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0.5rem 0 0.4rem;
+}
+
+.modal-city-desc {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+}
+
+.city-feedback {
+    font-size: 0.85rem;
+    min-height: 1.4em;
+    margin: 0.5rem 0 0.75rem;
+    border-radius: 0.5rem;
+    padding: 0 0.25rem;
+    transition: color 0.2s;
+}
+
+.city-feedback--error   { color: #dc2626; }
+.city-feedback--success { color: #16a34a; }
+.city-feedback--info    { color: #2563eb; }
+.city-feedback--loading { color: #6b7280; }
+
+.btn-city-skip {
+    display: block;
+    width: 100%;
+    margin-top: 0.75rem;
+    background: none;
+    border: none;
+    color: #6b7280;
+    font-size: 0.85rem;
+    text-align: center;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 0.5rem;
+    transition: color 0.15s;
+}
+
+.btn-city-skip:hover { color: #374151; }
+
+/* ==========================================================================
+   CHIP DE CIDADE NO FEED
+   ========================================================================== */
+
+.city-filter-bar {
+    padding: 0 1rem 0.25rem;
+}
+
+.city-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1d4ed8;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.city-chip:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+}
+
+.city-chip-arrow {
+    font-size: 0.65rem;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+#city-display-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
