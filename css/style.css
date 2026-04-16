@@ -450,15 +450,16 @@ body {
     background: #e2e8f0;
 }
 
-/* Grid de botões sociais — 3 colunas iguais */
+/* Label acima dos botões de cadastro social */
 .oauth-register-label {
     text-align: center;
     font-size: 0.8125rem;
     color: #6b7280;
     font-weight: 500;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.625rem;
 }
 
+/* Grid de botões sociais — 3 colunas iguais */
 .oauth-buttons {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -468,52 +469,67 @@ body {
 /* Base do botão OAuth */
 .btn-oauth {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.6875rem 0.5rem;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
+    gap: 0.375rem;
+    padding: 0.875rem 0.5rem 0.75rem;
+    border: 1.5px solid #e8edf3;
+    border-radius: 14px;
     background: #ffffff;
     font-family: inherit;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: #374151;
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: box-shadow 0.18s ease, transform 0.12s ease, border-color 0.18s ease;
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.01em;
 }
 
 .btn-oauth:hover {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    transform: translateY(-1px);
+    border-color: #c7d2e0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
 }
 
 .btn-oauth:active {
-    transform: scale(0.97) translateY(0);
-    box-shadow: none;
+    transform: scale(0.96) translateY(0);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 /* Ícone SVG dentro do botão */
 .oauth-icon {
-    width: 18px;
-    height: 18px;
+    width: 26px;
+    height: 26px;
     flex-shrink: 0;
+    display: block;
+}
+
+/* Google: borda sutil azul ao hover */
+.btn-oauth-google:hover {
+    border-color: #4285F4;
+}
+
+/* Facebook: borda azul ao hover */
+.btn-oauth-facebook:hover {
+    border-color: #1877F2;
 }
 
 /* Apple: fundo escuro para contrastar o logo branco */
 .btn-oauth-apple {
-    background: #000000;
-    border-color: #000000;
+    background: #111111;
+    border-color: #111111;
     color: #ffffff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
 
 .btn-oauth-apple:hover {
-    background: #1a1a1a;
-    border-color: #1a1a1a;
+    background: #222222;
+    border-color: #222222;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.22);
 }
 
 /* ==========================================
