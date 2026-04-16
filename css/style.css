@@ -134,61 +134,81 @@ body {
 
 /* ==========================================
    AUTH SCREENS (LOGIN/CADASTRO)
+   Estilo modernizado — inspirado em Stripe / Notion / Airbnb
    ========================================== */
+
+/* Fundo suave com gradiente muito sutil */
 .auth-screen {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: var(--spacing-lg);
-    /* Fundo totalmente branco para combinar com o fundo da arte */
-    background: #ffffff;
+    min-height: 100vh;
+    padding: 1.25rem 1rem;
+    background: linear-gradient(160deg, #eef2ff 0%, #f5f7ff 50%, #fafafa 100%);
 }
 
+/* Card central com sombra leve — efeito "floating form" */
 .auth-container {
     width: 100%;
-    max-width: 360px;
-    animation: slideUp 0.5s ease;
+    max-width: 380px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 2.25rem 2rem;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.04),
+        0 8px 32px rgba(37, 99, 235, 0.07);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    animation: slideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
+/* Área do logo — hierarquia clara */
 .logo {
     text-align: center;
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: 1.75rem;
 }
 
+/* Ícone menor e com sombra suave para respirar mais */
 .logo img.logo-image {
-    width: 140px;
-    height: 140px;
+    width: 80px;
+    height: 80px;
     object-fit: contain;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: 0.75rem;
+    filter: drop-shadow(0 4px 12px rgba(37, 99, 235, 0.15));
 }
 
 .logo i {
-    font-size: 2.75rem;
+    font-size: 2.5rem;
     color: var(--primary);
-    margin-bottom: var(--spacing-md);
+    margin-bottom: 0.75rem;
     display: block;
 }
 
+/* Título na tela de cadastro */
 .logo h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     color: var(--text-primary);
+    line-height: 1.2;
 }
 
+/* Subtítulo "Ivaí-PR" na tela de login */
 .logo p {
     color: var(--text-muted);
-    font-size: 0.875rem;
-    margin-top: var(--spacing-xs);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 0.25rem;
 }
 
-/* Seletor de Tipo de Usuário */
+/* Seletor de Tipo de Usuário (mantido, sem alteração funcional) */
 .user-type-selector {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -236,57 +256,70 @@ body {
     color: var(--primary);
 }
 
-/* Formulários */
+/* Formulários — espaçamento mais generoso */
 .auth-form {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: 0.75rem;
 }
 
+/* Grupos de input — ícone posicionado absolutamente */
 .input-group {
     position: relative;
     display: flex;
     align-items: center;
 }
 
+/* Ícone do campo */
 .input-group i {
     position: absolute;
-    left: var(--spacing-md);
-    color: var(--text-muted);
-    font-size: 1rem;
+    left: 1rem;
+    color: #94a3b8;
+    font-size: 0.9375rem;
+    pointer-events: none;
     transition: color var(--transition-fast);
+    z-index: 1;
 }
 
+/* Inputs modernos: fundo branco, borda sutil, padding generoso */
 .input-group input,
 .input-group select {
     width: 100%;
-    padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) 2.75rem;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
+    padding: 0.8125rem 1rem 0.8125rem 2.75rem;
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
     color: var(--text-primary);
-    font-size: 1rem;
+    font-size: 0.9375rem;
     font-family: inherit;
-    transition: all var(--transition-fast);
+    font-weight: 400;
+    line-height: 1.5;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
+/* Foco com anel azul sutil */
 .input-group input:focus,
 .input-group select:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-soft);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
+/* Ícone fica azul ao focar */
 .input-group input:focus + i,
 .input-group:focus-within i {
-    color: var(--primary);
+    color: #3b82f6;
 }
 
+/* Placeholder mais discreto */
 .input-group input::placeholder {
-    color: var(--text-muted);
+    color: #94a3b8;
+    font-weight: 400;
 }
 
-/* Campos de Comerciante */
+/* Campos de Comerciante (mantido) */
 .merchant-fields {
     display: flex;
     flex-direction: column;
@@ -299,7 +332,9 @@ body {
     to { opacity: 1; max-height: 500px; }
 }
 
-/* Botões */
+/* ==========================================
+   BOTÕES
+   ========================================== */
 .btn {
     display: inline-flex;
     align-items: center;
@@ -315,18 +350,33 @@ body {
     transition: all var(--transition-fast);
 }
 
+/* Botão primário — mais escuro, sombra colorida suave */
 .btn-primary {
-    background: var(--primary);
-    color: white;
-    box-shadow: var(--shadow-sm);
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25), 0 4px 12px rgba(37, 99, 235, 0.15);
+    letter-spacing: 0.01em;
 }
 
 .btn-primary:hover {
-    background: var(--primary-hover);
+    background: #1d4ed8;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3), 0 6px 18px rgba(37, 99, 235, 0.18);
+    transform: translateY(-1px);
 }
 
 .btn-primary:active {
-    transform: scale(0.98);
+    transform: scale(0.98) translateY(0);
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+
+/* Botão de ação auth ocupa largura total com altura confortável */
+.auth-form .btn-primary,
+.auth-screen .btn-primary {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    border-radius: 10px;
+    font-size: 0.9375rem;
+    margin-top: 0.375rem;
 }
 
 .btn-secondary {
@@ -343,26 +393,127 @@ body {
     width: 100%;
 }
 
-/* Links de Auth */
+/* Botão "Instalar app" na tela de login */
+#install-app-btn.btn-secondary {
+    border-radius: 10px;
+    font-size: 0.875rem;
+    border-color: #e2e8f0;
+    color: #475569;
+}
+
+/* ==========================================
+   LINKS DE AUTH — centralizados e clean
+   ========================================== */
 .auth-links {
     display: flex;
-    justify-content: space-between;
-    margin-top: var(--spacing-lg);
-    padding-top: var(--spacing-lg);
-    border-top: 1px solid var(--border-color);
+    justify-content: center;
+    gap: 1.75rem;
+    margin-top: 1.375rem;
+    padding-top: 1.125rem;
+    border-top: 1px solid #f1f5f9;
 }
 
 .auth-links a {
-    color: var(--accent);
+    color: #3b82f6;
     text-decoration: none;
     font-size: 0.875rem;
     font-weight: 500;
-    transition: color var(--transition-fast);
+    transition: color 0.15s ease, opacity 0.15s ease;
 }
 
 .auth-links a:hover {
-    color: var(--accent-hover);
+    color: #1d4ed8;
     text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* ==========================================
+   OAUTH / LOGIN SOCIAL
+   ========================================== */
+
+/* Divisor "ou continue com" */
+.oauth-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.125rem 0 0.875rem;
+    color: #94a3b8;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.oauth-divider::before,
+.oauth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+/* Grid de botões sociais — 3 colunas iguais */
+.oauth-register-label {
+    text-align: center;
+    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.oauth-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.625rem;
+}
+
+/* Base do botão OAuth */
+.btn-oauth {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6875rem 0.5rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-oauth:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.btn-oauth:active {
+    transform: scale(0.97) translateY(0);
+    box-shadow: none;
+}
+
+/* Ícone SVG dentro do botão */
+.oauth-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+/* Apple: fundo escuro para contrastar o logo branco */
+.btn-oauth-apple {
+    background: #000000;
+    border-color: #000000;
+    color: #ffffff;
+}
+
+.btn-oauth-apple:hover {
+    background: #1a1a1a;
+    border-color: #1a1a1a;
 }
 
 /* ==========================================

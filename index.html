@@ -96,6 +96,36 @@
                 </button>
             </form>
 
+            <!-- Divisor "ou continue com" -->
+            <div class="oauth-divider">
+                <span>ou continue com</span>
+            </div>
+
+            <!-- Botões de login social -->
+            <div class="oauth-buttons">
+                <button type="button" id="btn-login-google" class="btn-oauth btn-oauth-google" aria-label="Entrar com Google">
+                    <svg class="oauth-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    <span>Google</span>
+                </button>
+                <button type="button" id="btn-login-facebook" class="btn-oauth btn-oauth-facebook" aria-label="Entrar com Facebook">
+                    <svg class="oauth-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#1877F2" d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.268h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                    </svg>
+                    <span>Facebook</span>
+                </button>
+                <button type="button" id="btn-login-apple" class="btn-oauth btn-oauth-apple" aria-label="Entrar com Apple">
+                    <svg class="oauth-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    </svg>
+                    <span>Apple</span>
+                </button>
+            </div>
+
             <button id="install-app-btn" class="btn btn-secondary btn-block hidden" style="margin-top: 0.75rem;">
                 <i class="fas fa-download"></i> Instalar app no dispositivo
             </button>
@@ -113,6 +143,37 @@
             <div class="logo">
                 <img src="imagem/promoicone.svg" alt="PROMOCITY - Ivaí-PR" class="logo-image">
                 <h1>Criar Conta</h1>
+            </div>
+
+            <!-- Botões de cadastro social — opção principal -->
+            <p class="oauth-register-label">Crie sua conta com</p>
+            <div class="oauth-buttons">
+                <button type="button" id="btn-register-google" class="btn-oauth btn-oauth-google" aria-label="Cadastrar com Google">
+                    <svg class="oauth-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    <span>Google</span>
+                </button>
+                <button type="button" id="btn-register-facebook" class="btn-oauth btn-oauth-facebook" aria-label="Cadastrar com Facebook">
+                    <svg class="oauth-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="#1877F2" d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.268h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+                    </svg>
+                    <span>Facebook</span>
+                </button>
+                <button type="button" id="btn-register-apple" class="btn-oauth btn-oauth-apple" aria-label="Cadastrar com Apple">
+                    <svg class="oauth-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    </svg>
+                    <span>Apple</span>
+                </button>
+            </div>
+
+            <!-- Divisor para cadastro manual -->
+            <div class="oauth-divider">
+                <span>ou cadastre com email</span>
             </div>
 
             <form id="register-form" class="auth-form">
@@ -133,6 +194,10 @@
                 <div class="input-group">
                     <i class="fas fa-phone"></i>
                     <input type="tel" id="register-phone" placeholder="WhatsApp" required>
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-location-dot"></i>
+                    <input type="text" id="register-cep" placeholder="CEP (opcional)" inputmode="numeric" maxlength="9" autocomplete="postal-code">
                 </div>
 
                 <!-- Removidos os campos extras para comerciante -->
@@ -183,14 +248,6 @@
             <!-- Conteúdo injetado via JS (ui.renderPartnerStores) -->
         </div>
 
-        <!-- Filtro de cidade ativo -->
-        <div class="city-filter-bar hidden" id="city-filter-bar">
-            <button type="button" class="city-chip" id="city-change-btn" aria-label="Mudar cidade">
-                <i class="fas fa-map-marker-alt"></i>
-                <span id="city-display-label">📍 Definir cidade</span>
-                <i class="fas fa-chevron-down city-chip-arrow"></i>
-            </button>
-        </div>
 
         <!-- Categorias Home -->
         <div class="home-cats-bar" id="home-cats-bar" role="group" aria-label="Filtrar por categoria">
@@ -929,46 +986,59 @@
 
     <!-- Botão flutuante do mapa removido: mapa está no rodapé -->
 
-    <!-- MODAL CONFIGURAÇÃO DE CIDADE (address.js) -->
-    <div id="city-setup-modal" class="modal-overlay hidden" aria-modal="true" role="dialog" aria-labelledby="city-modal-title">
+    <!-- MODAL RECUPERAÇÃO DE SENHA -->
+    <div id="recover-password-modal" class="modal-overlay hidden" aria-modal="true" role="dialog" aria-labelledby="recover-modal-title">
         <div class="modal-content modal-city-setup">
             <div class="modal-city-header">
                 <div class="modal-city-icon-wrap">
-                    <i class="fas fa-map-marker-alt modal-city-icon"></i>
+                    <i class="fas fa-lock modal-city-icon"></i>
                 </div>
-                <button type="button" class="icon-btn modal-city-close" id="city-setup-close" aria-label="Fechar">
+                <button type="button" class="icon-btn modal-city-close" id="recover-modal-close" aria-label="Fechar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="modal-city-body">
-                <h3 class="modal-city-title" id="city-modal-title">Qual é a sua cidade?</h3>
+                <h3 class="modal-city-title" id="recover-modal-title">Esqueci minha senha</h3>
                 <p class="modal-city-desc">
-                    Digite seu CEP para ver as promoções mais perto de você.
+                    Digite seu e-mail e enviaremos um link para você criar uma nova senha.
                 </p>
-                <form id="city-setup-form" class="auth-form" novalidate>
+                <form id="recover-password-form" class="auth-form" novalidate>
                     <div class="input-group">
-                        <i class="fas fa-location-dot"></i>
+                        <i class="fas fa-envelope"></i>
                         <input
-                            type="text"
-                            id="city-cep-input"
-                            placeholder="00000-000"
-                            inputmode="numeric"
-                            maxlength="9"
-                            autocomplete="postal-code"
+                            type="email"
+                            id="recover-email-input"
+                            placeholder="seu@email.com"
+                            inputmode="email"
+                            autocomplete="email"
                             required
                         >
                     </div>
-                    <div id="city-setup-feedback" class="city-feedback" aria-live="polite" aria-atomic="true"></div>
-                    <button type="submit" class="btn btn-primary btn-block" id="city-setup-submit">
-                        <i class="fas fa-map-marker-alt"></i> Confirmar cidade
+                    <div id="recover-feedback" class="city-feedback" aria-live="polite" aria-atomic="true"></div>
+                    <button type="submit" class="btn btn-primary btn-block" id="recover-submit-btn">
+                        <i class="fas fa-paper-plane"></i> Enviar link
                     </button>
                 </form>
-                <button type="button" class="btn-city-skip" id="city-setup-skip">
-                    Pular por agora
+                <button type="button" class="btn-city-skip" id="recover-modal-cancel">
+                    Cancelar
                 </button>
             </div>
         </div>
     </div>
+
+
+    <!-- Desregistra Service Workers legados do OneSignal -->
+    <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(reg => {
+          if (reg.scope.includes('OneSignal') || reg.active?.scriptURL.includes('OneSignal')) {
+            reg.unregister();
+          }
+        });
+      });
+    }
+    </script>
 
     <!-- SCRIPTS - UMA ÚNICA VEZ CADA -->
     <script src="js/utils.js?v=20260408"></script>

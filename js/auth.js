@@ -31,7 +31,8 @@ const auth = {
     },
 
     /**
-     * Carrega dados do usuário logado
+     * Carrega dados do usuário logado.
+     * Para usuários OAuth sem perfil na DB, cria o perfil automaticamente.
      */
     async loadUser() {
         try {
@@ -41,6 +42,27 @@ const auth = {
                 return userData;
             }
         } catch (error) {
+            // PGRST116 = nenhuma linha encontrada com .single() → usuário OAuth sem perfil ainda
+            const isNotFound =
+                error?.code === 'PGRST116' ||
+                String(error?.message || '').toLowerCase().includes('no rows') ||
+                String(error?.message || '').toLowerCase().includes('0 rows');
+
+            if (isNotFound) {
+                try {
+                    const { data: { user: authUser } } = await supabaseClient.auth.getUser();
+                    if (authUser) {
+                        await this._ensureOAuthProfile(authUser);
+                        // Tenta recarregar o perfil recém-criado
+                        const retryData = await db.getCurrentUser();
+                        if (retryData) {
+                            this.currentUser = retryData;
+                            return retryData;
+                        }
+                    }
+                } catch (_) {}
+            }
+
             console.error('Erro ao carregar usuário:', error);
         }
         try {
@@ -143,13 +165,16 @@ const auth = {
      */
     async login(email, password) {
         try {
-            if (!email || !password) {
+            const normalizedEmail = String(email || '').trim().toLowerCase();
+            const normalizedPassword = String(password || '');
+
+            if (!normalizedEmail || !normalizedPassword) {
                 throw new Error('Preencha email e senha');
             }
 
             const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email,
-                password
+                email: normalizedEmail,
+                password: normalizedPassword
             });
 
             if (error) {
@@ -208,6 +233,61 @@ const auth = {
             return { success: true };
         } catch (error) {
             return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Login via OAuth (Google, Facebook, Apple)
+     * Redireciona o usuário ao provedor e volta ao app automaticamente.
+     */
+    async loginWithOAuth(provider) {
+        try {
+            const redirectTo = window.location.origin + window.location.pathname;
+            const options = { redirectTo };
+
+            // Google: pede refresh_token para sessões longas
+            if (provider === 'google') {
+                options.queryParams = { access_type: 'offline', prompt: 'select_account' };
+            }
+
+            const { error } = await supabaseClient.auth.signInWithOAuth({ provider, options });
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    },
+
+    /**
+     * Garante que o usuário OAuth tenha um perfil na tabela 'users'.
+     * Chamado automaticamente na primeira vez que o usuário entra via social login.
+     */
+    async _ensureOAuthProfile(authUser) {
+        try {
+            const meta = authUser?.user_metadata || {};
+            const name = meta.full_name || meta.name || (authUser.email ? authUser.email.split('@')[0] : 'Usuário');
+            const avatarUrl = meta.avatar_url || meta.picture || null;
+
+            await db.createUserProfile(authUser.id, {
+                name,
+                email: authUser.email || '',
+                phone: meta.phone || '',
+                userType: 'consumer',
+                businessName: null,
+                businessAddress: null,
+                businessCategory: null,
+                businessStoreLink: null
+            });
+
+            // Se o provedor retornou um avatar, salva-o no perfil
+            if (avatarUrl) {
+                await db.updateUserProfile(authUser.id, { avatar_url: avatarUrl });
+            }
+        } catch (err) {
+            // Duplicata (23505) = perfil já existe, ignora silenciosamente
+            if (err?.code !== '23505' && !String(err?.message || '').includes('duplicate')) {
+                console.warn('[OAuth] Não foi possível criar perfil automático:', err.message);
+            }
         }
     },
 

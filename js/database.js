@@ -509,7 +509,6 @@ const db = {
             return expiresAt > now;
         });
         
-        console.log(`📊 Total de promoções: ${data.length} | Válidas: ${filteredData.length}`);
         return filteredData;
     },
 
@@ -518,59 +517,16 @@ const db = {
      * Retorna apenas promoções que têm latitude/longitude válidas
      */
     async getPromotionsForMap(options = {}) {
-        console.log('🗺️ [DB] Buscando promoções para o mapa...');
-        
         const promotions = await this.getPromotions(options);
-        
-        console.log(`🗺️ [DB] Total de promoções ativas: ${promotions.length}`);
-        
-        // Filtra apenas promoções que têm coordenadas válidas
+
         const comCoordenadas = promotions.filter(promo => {
-            const temAutor = promo.author !== null && promo.author !== undefined;
-            if (!temAutor) {
-                console.log(`🗺️ [DB] Promoção ${promo.id} sem autor`);
-                return false;
-            }
-            
-            const temLat = promo.author.latitude !== null && promo.author.latitude !== undefined;
-            const temLng = promo.author.longitude !== null && promo.author.longitude !== undefined;
-            
-            if (!temLat || !temLng) {
-                console.log(`🗺️ [DB] Promoção ${promo.id} do autor ${promo.author.name} não tem coordenadas`);
-                return false;
-            }
-            
-            const latValida = !isNaN(parseFloat(promo.author.latitude));
-            const lngValida = !isNaN(parseFloat(promo.author.longitude));
-            
-            if (!latValida || !lngValida) {
-                console.log(`🗺️ [DB] Promoção ${promo.id} tem coordenadas inválidas:`, {
-                    lat: promo.author.latitude,
-                    lng: promo.author.longitude
-                });
-                return false;
-            }
-            
-            return true;
+            if (!promo.author) return false;
+            const lat = promo.author.latitude;
+            const lng = promo.author.longitude;
+            if (lat == null || lng == null) return false;
+            return !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng));
         });
-        
-        console.log(`🗺️ [DB] Promoções com coordenadas válidas: ${comCoordenadas.length}`);
-        
-        if (comCoordenadas.length === 0) {
-            console.log('🗺️ [DB] NENHUMA promoção com coordenadas encontrada!');
-            console.log('🗺️ [DB] Verifique se os comerciantes têm latitude/longitude cadastradas.');
-        } else {
-            console.log('🗺️ [DB] Promoções que serão mostradas no mapa:', 
-                comCoordenadas.map(p => ({
-                    id: p.id,
-                    titulo: p.title,
-                    autor: p.author?.name,
-                    lat: p.author?.latitude,
-                    lng: p.author?.longitude
-                }))
-            );
-        }
-        
+
         return comCoordenadas;
     },
 
@@ -847,6 +803,12 @@ const db = {
      * Adiciona/remove promoção dos favoritos do usuário
      */
     async toggleFavorite(promotionId) {
+        if (!this._favoritingInProgress) this._favoritingInProgress = new Set();
+        const key = String(promotionId);
+        if (this._favoritingInProgress.has(key)) throw new Error('Operação em andamento, aguarde.');
+        this._favoritingInProgress.add(key);
+
+        try {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (!user) throw new Error('Usuário não autenticado');
 
@@ -881,6 +843,9 @@ const db = {
 
         if (updateError) throw updateError;
         return { isFavorited, favorites };
+        } finally {
+            this._favoritingInProgress.delete(key);
+        }
     },
 
     /**
@@ -995,24 +960,18 @@ const db = {
      * Deleta um story
      */
     async deleteStory(storyId) {
-        console.log('🗑️ [DB] Tentando deletar story ID:', storyId);
-        
         const { data, error } = await supabaseClient
             .from('stories')
             .delete()
             .eq('id', storyId)
             .select();
 
-        if (error) {
-            console.error('❌ [DB] Erro ao deletar story:', error);
-            throw error;
-        }
+        if (error) throw error;
 
         if (!data || data.length === 0) {
             throw new Error('Story não encontrado ou sem permissão');
         }
 
-        console.log('✅ [DB] Story deletado');
         return true;
     },
 
@@ -1110,7 +1069,7 @@ const db = {
     },
 
     /**
-     * Envia push notification para todos via Edge Function (OneSignal).
+     * Envia push notification para todos via Edge Function do Supabase.
      * Não bloqueia a UI — erro é silencioso.
      */
     async sendPushToAll(title, message, url) {
@@ -1236,28 +1195,6 @@ const db = {
                 await new Promise(r => setTimeout(r, 150));
             }
         }
-    },
-
-    // ==================== PUSH TOKENS ====================
-
-    async upsertPushToken(provider, token, deviceInfo = {}) {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (!user) throw new Error('Usuário não autenticado');
-
-        const { data, error } = await supabaseClient
-            .from('push_tokens')
-            .upsert([{
-                user_id: user.id,
-                provider,
-                token,
-                device_info: deviceInfo,
-                is_active: true
-            }], { onConflict: 'user_id,provider,token' })
-            .select()
-            .maybeSingle();
-
-        if (error) throw error;
-        return data;
     },
 
     // ==================== ENTREGAS E MOTOBOYS ====================

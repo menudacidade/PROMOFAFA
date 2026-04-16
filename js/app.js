@@ -58,11 +58,6 @@ const app = {
                 await this.loadInitialData();
                 ui.navigateTo('main', { historyMode: 'replace' });
                 this.updateHeaderAvatar();
-                addressManager.updateCityDisplay();
-                if (addressManager.hasCity()) {
-                    const cityBar = document.getElementById('city-filter-bar');
-                    if (cityBar) cityBar.classList.remove('hidden');
-                }
                 await this.refreshNotificationsBadge();
                 if (this._notificationsPollStart) this._notificationsPollStart();
                 // Abre promoção via deep link (?promo=ID) se houver
@@ -290,7 +285,7 @@ const app = {
      * Configura listeners de eventos
      */
     setupEventListeners() {
-        console.log('🔧 Configurando listeners...');
+        if (window.PROMOCITY_DEBUG) console.log('🔧 Configurando listeners...');
 
         // Navegação do bottom nav
         document.querySelectorAll('.nav-item:not(.nav-item-center)').forEach(item => {
@@ -313,6 +308,15 @@ const app = {
                 }
             });
         });
+
+        // Máscara de CEP no campo de cadastro
+        const registerCepInput = document.getElementById('register-cep');
+        if (registerCepInput && typeof addressManager !== 'undefined') {
+            registerCepInput.addEventListener('input', e => {
+                const raw = e.target.value.replace(/\D/g, '').slice(0, 8);
+                e.target.value = addressManager.formatCep(raw);
+            });
+        }
 
         // Header: campo de busca leva para tela de busca
         const headerSearchTrigger = document.getElementById('header-search-trigger');
@@ -346,7 +350,7 @@ const app = {
             newAddMenuBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🎯 Botão central clicado!');
+                if (window.PROMOCITY_DEBUG) console.log('🎯 Botão central clicado!');
                 addMenu.classList.toggle('hidden');
             });
 
@@ -460,20 +464,19 @@ const app = {
             });
         }
 
-        // Esqueci a senha
-        document.getElementById('show-recover')?.addEventListener('click', async (e) => {
+        // Esqueci a senha — abre modal inline (sem window.prompt)
+        document.getElementById('show-recover')?.addEventListener('click', (e) => {
             e.preventDefault();
-            const email = window.prompt('Digite seu e-mail para receber o link de redefinição de senha:');
-            if (!email) return;
-            try {
-                ui.showLoading(true);
-                await auth.resetPassword(email.trim());
-                ui.showToast('Link de redefinição enviado! Verifique seu e-mail.', 'success');
-            } catch (err) {
-                ui.showToast(err.message || 'Erro ao enviar e-mail de recuperação', 'error');
-            } finally {
-                ui.showLoading(false);
-            }
+            this.openRecoverPasswordModal();
+        });
+        document.getElementById('recover-modal-close')?.addEventListener('click', () => this.closeRecoverPasswordModal());
+        document.getElementById('recover-modal-cancel')?.addEventListener('click', () => this.closeRecoverPasswordModal());
+        document.getElementById('recover-password-modal')?.addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) this.closeRecoverPasswordModal();
+        });
+        document.getElementById('recover-password-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleRecoverPassword();
         });
 
         // Atualizar mapa
@@ -487,14 +490,6 @@ const app = {
             await this.handleRegister();
         });
         this._syncRegisterCooldownUi();
-
-        // Recarrega feed quando usuário confirma cidade
-        document.addEventListener('promocity:cityChanged', () => {
-            this.loadInitialData();
-            addressManager.updateCityDisplay();
-            const cityBar = document.getElementById('city-filter-bar');
-            if (cityBar) cityBar.classList.remove('hidden');
-        });
 
         // Sino de notificações
         document.getElementById('btn-notifications')?.addEventListener('click', async () => {
@@ -538,6 +533,22 @@ const app = {
         document.getElementById('show-login')?.addEventListener('click', (e) => {
             e.preventDefault();
             ui.navigateTo('login');
+        });
+
+        // Login/Cadastro social (OAuth) — Google, Facebook, Apple
+        // Os mesmos botões funcionam para login E criação de conta (Supabase cria automaticamente)
+        ['google', 'facebook', 'apple'].forEach((provider) => {
+            const handler = async () => {
+                ui.showLoading(true);
+                const result = await auth.loginWithOAuth(provider);
+                if (!result.success) {
+                    ui.showLoading(false);
+                    ui.showToast(result.error || `Erro ao continuar com ${provider}`, 'error');
+                }
+                // Se sucesso: o navegador redireciona ao provedor — loading permanece até o redirect
+            };
+            document.getElementById(`btn-login-${provider}`)?.addEventListener('click', handler);
+            document.getElementById(`btn-register-${provider}`)?.addEventListener('click', handler);
         });
 
         // Upload de imagem preview
@@ -1136,11 +1147,14 @@ const app = {
                 }
 
                 ui.navigateTo('main', { historyMode: 'replace' });
-                // Não exibe toast aqui: handleLogin já exibe "Login realizado com sucesso!"
-                // para evitar dois toasts sobrepostos ao mesmo tempo.
+                // Para login via formulário, handleLogin() já exibe o toast.
+                // Para login/cadastro via OAuth (redirect do provedor), exibimos aqui.
+                if (!this._loginViaForm) {
+                    const name = auth.currentUser?.profile?.name || auth.currentUser?.name || '';
+                    ui.showToast(name ? `Bem-vindo, ${name.split(' ')[0]}!` : 'Entrou com sucesso!', 'success');
+                }
+                this._loginViaForm = false;
                 this.updateHeaderAvatar();
-                addressManager.checkAndPromptCity();
-                addressManager.updateCityDisplay();
 
                 const addMenuBtn = document.getElementById('btn-add-menu');
                 if (addMenuBtn) {
@@ -1220,8 +1234,15 @@ const app = {
     },
 
     async handleLogin() {
-        const email = document.getElementById('login-email')?.value || '';
+        if (this._loginSubmitting) return;
+
+        const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
         const password = document.getElementById('login-password')?.value || '';
+
+        this._loginViaForm = true;
+        this._loginSubmitting = true;
+        const btn = document.querySelector('#login-form button[type="submit"]');
+        if (btn) { btn.disabled = true; }
 
         ui.showLoading(true);
         let result;
@@ -1231,6 +1252,9 @@ const app = {
             ui.showLoading(false);
             ui.showToast(err?.message || 'Erro ao fazer login', 'error');
             return;
+        } finally {
+            this._loginSubmitting = false;
+            if (btn) { btn.disabled = false; }
         }
         ui.showLoading(false);
 
@@ -1241,9 +1265,63 @@ const app = {
         }
     },
 
+    openRecoverPasswordModal() {
+        const modal = document.getElementById('recover-password-modal');
+        const input = document.getElementById('recover-email-input');
+        const feedback = document.getElementById('recover-feedback');
+        const btn = document.getElementById('recover-submit-btn');
+        if (!modal) return;
+        if (input) {
+            // Pré-preenche com o email digitado na tela de login
+            const loginEmail = (document.getElementById('login-email')?.value || '').trim();
+            input.value = loginEmail;
+            input.disabled = false;
+        }
+        if (feedback) { feedback.textContent = ''; feedback.className = 'city-feedback'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar link'; }
+        modal.classList.remove('hidden');
+        setTimeout(() => input?.focus(), 100);
+    },
+
+    closeRecoverPasswordModal() {
+        document.getElementById('recover-password-modal')?.classList.add('hidden');
+    },
+
+    async handleRecoverPassword() {
+        const input = document.getElementById('recover-email-input');
+        const feedback = document.getElementById('recover-feedback');
+        const btn = document.getElementById('recover-submit-btn');
+        const email = (input?.value || '').trim().toLowerCase();
+
+        if (!email) {
+            if (feedback) { feedback.textContent = 'Digite seu e-mail.'; feedback.className = 'city-feedback city-feedback--error'; }
+            return;
+        }
+
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...'; }
+        if (feedback) { feedback.textContent = ''; feedback.className = 'city-feedback'; }
+
+        try {
+            await auth.resetPassword(email);
+            if (feedback) {
+                feedback.textContent = '✅ Link enviado! Verifique seu e-mail (incluindo spam).';
+                feedback.className = 'city-feedback city-feedback--success';
+            }
+            if (input) { input.disabled = true; }
+            setTimeout(() => this.closeRecoverPasswordModal(), 3500);
+        } catch (err) {
+            if (feedback) {
+                feedback.textContent = err.message || 'Erro ao enviar e-mail. Tente novamente.';
+                feedback.className = 'city-feedback city-feedback--error';
+            }
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar link'; }
+        }
+    },
+
     async handleRegister() {
         if (this.state.registerSubmitting) return;
 
+        this._loginViaForm = true;
         const cooldownRemainingMs = this._getRegisterCooldownRemainingMs();
         if (cooldownRemainingMs > 0) {
             const cooldownSec = Math.ceil(cooldownRemainingMs / 1000);
@@ -1252,6 +1330,7 @@ const app = {
             return;
         }
 
+        const cepRaw = document.getElementById('register-cep')?.value || '';
         const userData = {
             name: document.getElementById('register-name')?.value || '',
             email: document.getElementById('register-email')?.value || '',
@@ -1267,6 +1346,17 @@ const app = {
             ui.showLoading(true);
             const result = await auth.register(userData);
             if (result.success) {
+                // Salva CEP/cidade se informado no cadastro
+                const cleanCep = cepRaw.replace(/\D/g, '');
+                if (cleanCep.length === 8 && typeof addressManager !== 'undefined') {
+                    try {
+                        const cityData = await addressManager.resolveFromCep(cleanCep);
+                        await addressManager.saveCity(cityData);
+                    } catch (cepErr) {
+                        console.warn('[register] CEP não resolvido:', cepErr?.message);
+                    }
+                }
+
                 if (result.requiresEmailConfirmation) {
                     ui.showToast('Conta criada! Verifique seu email para ativar o acesso.', 'success');
                     ui.navigateTo('login');
@@ -1296,6 +1386,8 @@ const app = {
     },
 
     async handlePublishStory() {
+        if (this._storySubmitting) return;
+
         const fileInput = document.getElementById('story-image');
         const whatsappInput = document.getElementById('story-whatsapp');
         const captionInput = document.getElementById('story-caption');
@@ -1321,6 +1413,9 @@ const app = {
             return;
         }
 
+        const storySubmitBtn = document.querySelector('#story-publish-form button[type="submit"]');
+        this._storySubmitting = true;
+        if (storySubmitBtn) { storySubmitBtn.disabled = true; }
         ui.showLoading(true);
 
         try {
@@ -1349,10 +1444,11 @@ const app = {
             ui.navigateTo('main');
 
         } catch (error) {
-            console.error('❌ Erro ao publicar story:', error);
             const msg = (error && error.message) ? error.message : String(error);
             ui.showToast('Erro ao publicar story: ' + msg, 'error');
         } finally {
+            this._storySubmitting = false;
+            if (storySubmitBtn) { storySubmitBtn.disabled = false; }
             ui.showLoading(false);
         }
     },
@@ -1381,12 +1477,12 @@ const app = {
     },
 
     async editPromo(promoId) {
-        console.log('✏️ editPromo chamado com ID:', promoId);
+        if (window.PROMOCITY_DEBUG) console.log('✏️ editPromo chamado com ID:', promoId);
         
         let promo = this.state.promotions.find(p => p.id === promoId);
         
         if (!promo) {
-            console.log('🔄 Buscando promoção no banco de dados...');
+            if (window.PROMOCITY_DEBUG) console.log('🔄 Buscando promoção no banco de dados...');
             try {
                 const { data, error } = await supabaseClient
                     .from('promotions')
@@ -1446,7 +1542,7 @@ const app = {
                 submitBtn.innerHTML = '<i class="fas fa-save"></i> Atualizar Promoção';
             }
 
-            console.log('✅ Formulário preenchido');
+            if (window.PROMOCITY_DEBUG) console.log('✅ Formulário preenchido');
             ui.navigateTo('publish');
             
         } catch (error) {
@@ -1456,14 +1552,14 @@ const app = {
     },
 
     confirmDeletePromo(promoId) {
-        console.log('🗑️ confirmDeletePromo chamado com ID:', promoId);
+        if (window.PROMOCITY_DEBUG) console.log('🗑️ confirmDeletePromo chamado com ID:', promoId);
         if (confirm('Tem certeza que deseja excluir esta promoção?')) {
             this.deletePromo(promoId);
         }
     },
 
     async deletePromo(promoId) {
-        console.log('❌ deletePromo chamado com ID:', promoId);
+        if (window.PROMOCITY_DEBUG) console.log('❌ deletePromo chamado com ID:', promoId);
         ui.showLoading(true);
         
         try {
@@ -1480,7 +1576,7 @@ const app = {
     },
 
     async deleteStory(storyId) {
-        console.log('❌ deleteStory chamado com ID:', storyId);
+        if (window.PROMOCITY_DEBUG) console.log('❌ deleteStory chamado com ID:', storyId);
         if (!confirm('Excluir este story?')) return;
 
         ui.showLoading(true);
@@ -1669,10 +1765,13 @@ const app = {
     },
 
     async handlePublish() {
+        if (this._publishSubmitting) return;
+
         const publishForm = document.getElementById('publish-form');
         const isEditing = publishForm.dataset.mode === 'edit';
         const promoId = publishForm.dataset.promoId;
 
+        const publishSubmitBtn = publishForm.querySelector('button[type="submit"]');
         const fileInput = document.getElementById('promo-image');
         const file = fileInput?.files[0];
 
@@ -1688,6 +1787,9 @@ const app = {
                 ui.showToast('Adicione uma imagem', 'warning');
                 return;
             }
+
+            this._publishSubmitting = true;
+            if (publishSubmitBtn) { publishSubmitBtn.disabled = true; }
             ui.showLoading(true);
 
             try {
@@ -1699,9 +1801,10 @@ const app = {
                 }
                 imageUrl = await db.uploadImage(fileToUpload, 'promotions', auth.currentUser.id);
             } catch (uploadError) {
-                console.error('Erro no upload:', uploadError);
                 const msg = (uploadError && uploadError.message) ? uploadError.message : String(uploadError);
                 ui.showToast('Erro ao fazer upload da imagem: ' + msg, 'error');
+                this._publishSubmitting = false;
+                if (publishSubmitBtn) { publishSubmitBtn.disabled = false; }
                 ui.showLoading(false);
                 return;
             }
@@ -1724,6 +1827,8 @@ const app = {
             return;
         }
 
+        this._publishSubmitting = true;
+        if (publishSubmitBtn) { publishSubmitBtn.disabled = true; }
         ui.showLoading(true);
 
         try {
@@ -1739,8 +1844,7 @@ const app = {
 
             publishForm.dataset.mode = '';
             publishForm.dataset.promoId = '';
-            const submitBtn = publishForm.querySelector('button[type="submit"]');
-            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Publicar Promoção';
+            if (publishSubmitBtn) { publishSubmitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Publicar Promoção'; }
             publishForm.reset();
             const preview = document.getElementById('image-preview');
             if (preview) preview.classList.add('hidden');
@@ -1752,9 +1856,10 @@ const app = {
             await this.loadInitialData();
 
         } catch (error) {
-            console.error('❌ Erro ao publicar/atualizar promoção:', error);
             ui.showToast('Erro ao publicar: ' + error.message, 'error');
         } finally {
+            this._publishSubmitting = false;
+            if (publishSubmitBtn) { publishSubmitBtn.disabled = false; }
             ui.showLoading(false);
         }
     },
@@ -1896,7 +2001,7 @@ const app = {
     },
 
     async sharePromo(promoId) {
-        console.log('🔗 sharePromo chamado com ID:', promoId);
+        if (window.PROMOCITY_DEBUG) console.log('🔗 sharePromo chamado com ID:', promoId);
         
         let promo = this.state.promotions.find(p => p.id === promoId);
         
@@ -2106,21 +2211,16 @@ const app = {
                 if (oldAddress !== updatedData.business_address) {
                     ui.showToast('Obtendo coordenadas do endereço...', 'info', 2000);
                     
-                    console.log('📍 Geocodificando endereço:', updatedData.business_address);
-                    
                     const coords = await utils.geocodeAddress(updatedData.business_address);
                     
                     if (coords) {
                         updatedData.latitude = coords.lat;
                         updatedData.longitude = coords.lon;
-                        console.log('✅ Coordenadas obtidas:', coords);
                         ui.showToast('Localização encontrada!', 'success', 1500);
                     } else {
-                        console.warn('⚠️ Falha na geocodificação para:', updatedData.business_address);
                         ui.showToast('Não foi possível encontrar o endereço no mapa. Verifique se está completo.', 'warning');
                     }
                 } else {
-                    console.log('ℹ️ Endereço não alterado, mantendo coordenadas existentes');
                 }
             }
 
@@ -3022,7 +3122,6 @@ const app = {
         try {
             ui.showLoading(true);
             const promotions = await db.getPromotionsForMap({ limit: 50 });
-            console.log('🗺️ Promoções carregadas para o mapa:', promotions.length);
             mapManager.addPromotionMarkers(promotions);
         } catch (error) {
             console.error('❌ Erro ao carregar promoções para o mapa:', error);
@@ -3148,27 +3247,6 @@ const app = {
 window.app = app;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ── Limpeza de legado OneSignal ──────────────────────────────────────────
-    // Remove SWs antigos (OneSignal) que não sejam o sw.js atual e apaga
-    // os bancos IndexedDB que o OneSignal SDK criava, eliminando os erros
-    // "UnknownError backing store" e conflitos de registro.
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((regs) => {
-            regs.forEach((reg) => {
-                const url =
-                    reg.active?.scriptURL ||
-                    reg.installing?.scriptURL ||
-                    reg.waiting?.scriptURL ||
-                    '';
-                if (!url.includes('/sw.js')) reg.unregister();
-            });
-        }).catch(() => {});
-    }
-    ['ONE_SIGNAL_SDK_DB', 'OneSignalSDKEvents', 'ONE_SIGNAL_SDK_EDGE_CACHE'].forEach((dbName) => {
-        try { indexedDB.deleteDatabase(dbName); } catch (_) {}
-    });
-    // ────────────────────────────────────────────────────────────────────────
-
     // ── Service Worker (cache/offline) ──────────────────────────────────────
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js', { scope: '/' })

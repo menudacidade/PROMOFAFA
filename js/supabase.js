@@ -315,7 +315,7 @@ try {
         // feed e notificações usam fetch + polling (ver app.js).
     });
     
-    console.log('✅ Supabase inicializado com sucesso');
+    if (window.PROMOCITY_DEBUG) console.log('✅ Supabase inicializado com sucesso');;
 } catch (error) {
     console.error('❌ Erro ao inicializar Supabase:', error);
     throw new Error('Falha na conexão com Supabase. Verifique as credenciais.');
@@ -344,7 +344,7 @@ const getServerTime = async () => {
             console.warn('Erro ao obter horário do servidor, usando horário local:', error);
             return new Date().toISOString();
         }
-        console.log('🕐 Horário do servidor:', data);
+        if (window.PROMOCITY_DEBUG) console.log('🕐 Horário do servidor:', data);
         return data;
     } catch (error) {
         console.warn('Erro na RPC, usando horário local:', error);
